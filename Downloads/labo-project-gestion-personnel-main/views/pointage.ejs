@@ -1,0 +1,307 @@
+<!-- ==================== views/pointage.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pointage - BIOCLINIC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <style>
+        .pointage-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+        
+        .time-display {
+            font-size: 4rem;
+            font-weight: 700;
+            text-align: center;
+            margin: 30px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .date-display {
+            font-size: 1.5rem;
+            text-align: center;
+            opacity: 0.9;
+            margin-bottom: 40px;
+        }
+        
+        .pointage-btn {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border: 5px solid white;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .pointage-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-arrivee {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-depart {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-arrivee:hover, .btn-depart:hover {
+            color: white;
+        }
+        
+        .status-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .status-time {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .timer-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .timer-value {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 20px 0;
+        }
+        
+        .info-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/sidebar', { currentPage: 'pointage' }) %>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-10 offset-md-2 px-4 py-4">
+                <div class="pointage-card">
+                    <div class="text-center">
+                        <h1><i class="bi bi-clock-history me-3"></i>Système de Pointage</h1>
+                        <p class="mb-0">Bonjour <%= locals.prenom %> <%= locals.nom %> - <%= locals.matricule %></p>
+                    </div>
+                    
+                    <div class="time-display" id="currentTime">--:--:--</div>
+                    <div class="date-display" id="currentDate">--</div>
+                    
+                    <div class="row justify-content-center">
+                        <div class="col-auto text-center">
+                            <% if (!pointage || !pointage.heure_arrivee) { %>
+                                <button class="pointage-btn btn-arrivee" id="btnArrivee">
+                                    <i class="bi bi-box-arrow-in-right d-block mb-2" style="font-size: 3rem;"></i>
+                                    ARRIVÉE
+                                </button>
+                            <% } %>
+                        </div>
+                        <div class="col-auto text-center">
+                            <% if (pointage && pointage.heure_arrivee && !pointage.heure_depart) { %>
+                                <button class="pointage-btn btn-depart" id="btnDepart">
+                                    <i class="bi bi-box-arrow-right d-block mb-2" style="font-size: 3rem;"></i>
+                                    DÉPART
+                                </button>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+                
+                <% if (pointage) { %>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="status-card text-center">
+                            <div class="status-icon text-success">
+                                <i class="bi bi-clock"></i>
+                            </div>
+                            <div class="status-label">Heure d'arrivée</div>
+                            <div class="status-time">
+                                <%= new Date(pointage.heure_arrivee).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) %>
+                            </div>
+                            <% if (new Date(pointage.heure_arrivee).getHours() > 8) { %>
+                                <span class="badge bg-warning mt-2">Retard</span>
+                            <% } else { %>
+                                <span class="badge bg-success mt-2">À l'heure</span>
+                            <% } %>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="status-card text-center">
+                            <div class="status-icon text-danger">
+                                <i class="bi bi-clock-fill"></i>
+                            </div>
+                            <div class="status-label">Heure de départ</div>
+                            <div class="status-time">
+                                <% if (pointage.heure_depart) { %>
+                                    <%= new Date(pointage.heure_depart).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) %>
+                                <% } else { %>
+                                    --:--
+                                <% } %>
+                            </div>
+                            <% if (pointage.heure_depart) { %>
+                                <span class="badge bg-info mt-2">Pointé</span>
+                            <% } else { %>
+                                <span class="badge bg-secondary mt-2">En attente</span>
+                            <% } %>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="timer-card">
+                            <div class="status-label">Temps de travail</div>
+                            <div class="timer-value" id="workTimer">
+                                <% if (pointage.duree_travail) { %>
+                                    <%= Math.floor(pointage.duree_travail / 60) %>h <%= pointage.duree_travail % 60 %>m
+                                <% } else { %>
+                                    <span id="liveTimer">0h 0m</span>
+                                <% } %>
+                            </div>
+                            <div class="info-badge">
+                                <i class="bi bi-calendar-check me-2"></i>
+                                <%= new Date(pointage.date_pointage).toLocaleDateString('fr-FR') %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+                
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-info-circle text-primary me-2"></i>
+                                    Informations
+                                </h5>
+                                <ul class="list-unstyled mb-0">
+                                    <li class="mb-2">
+                                        <i class="bi bi-check-circle text-success me-2"></i>
+                                        Horaires de travail : 8h00 - 17h00
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="bi bi-check-circle text-success me-2"></i>
+                                        N'oubliez pas de pointer votre départ en fin de journée
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="bi bi-check-circle text-success me-2"></i>
+                                        <a href="/pointage/historique">Consulter votre historique de pointages</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Mise à jour de l'heure en temps réel
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('fr-FR');
+            const dateString = now.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            $('#currentTime').text(timeString);
+            $('#currentDate').text(dateString);
+        }
+        
+        // Timer de travail en direct
+        <% if (pointage && pointage.heure_arrivee && !pointage.heure_depart) { %>
+        function updateWorkTimer() {
+            const arrival = new Date('<%= pointage.heure_arrivee %>');
+            const now = new Date();
+            const diff = Math.floor((now - arrival) / 1000 / 60); // en minutes
+            
+            const hours = Math.floor(diff / 60);
+            const minutes = diff % 60;
+            
+            $('#liveTimer').text(`${hours}h ${minutes}m`);
+        }
+        
+        setInterval(updateWorkTimer, 60000); // Mise à jour chaque minute
+        updateWorkTimer();
+        <% } %>
+        
+        // Pointer l'arrivée
+        $('#btnArrivee').click(function() {
+            if (confirm('Confirmer votre arrivée ?')) {
+                $.post('/pointage/arrivee', function(response) {
+                    if (response.success) {
+                        alert('Arrivée pointée avec succès !');
+                        location.reload();
+                    }
+                }).fail(function(xhr) {
+                    alert('Erreur : ' + xhr.responseJSON.error);
+                });
+            }
+        });
+        
+        // Pointer le départ
+        $('#btnDepart').click(function() {
+            if (confirm('Confirmer votre départ ?')) {
+                $.post('/pointage/depart', function(response) {
+                    if (response.success) {
+                        alert('Départ pointé avec succès !');
+                        location.reload();
+                    }
+                }).fail(function(xhr) {
+                    alert('Erreur : ' + xhr.responseJSON.error);
+                });
+            }
+        });
+        
+        // Initialisation
+        setInterval(updateTime, 1000);
+        updateTime();
+    </script>
+</body>
+</html>

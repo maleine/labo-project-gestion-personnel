@@ -1,0 +1,194 @@
+<!-- ==================== views/rh/formations-details.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formation - <%= formation.titre %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+     <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+       <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    
+    <div class="main-content">
+        <div class="container-fluid px-4 py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><%= formation.titre %></h2>
+                <a href="/rh/formations" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            </div>
+
+            <div class="row g-4">
+                <!-- Informations Formation -->
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Détails de la Formation</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Référence:</strong> <%= formation.reference %></p>
+                                    <p><strong>Type:</strong> <%= formation.type_formation %></p>
+                                    <% if (formation.organisme) { %>
+                                    <p><strong>Organisme:</strong> <%= formation.organisme %></p>
+                                    <% } %>
+                                    <% if (formation.lieu) { %>
+                                    <p><strong>Lieu:</strong> <%= formation.lieu %></p>
+                                    <% } %>
+                                </div>
+                                <div class="col-md-6">
+                                    <% if (formation.date_debut) { %>
+                                    <p><strong>Début:</strong> <%= new Date(formation.date_debut).toLocaleDateString('fr-FR') %></p>
+                                    <% } %>
+                                    <% if (formation.date_fin) { %>
+                                    <p><strong>Fin:</strong> <%= new Date(formation.date_fin).toLocaleDateString('fr-FR') %></p>
+                                    <% } %>
+                                    <% if (formation.duree_heures) { %>
+                                    <p><strong>Durée:</strong> <%= formation.duree_heures %> heures</p>
+                                    <% } %>
+                                    <p><strong>Statut:</strong> <span class="badge bg-primary"><%= formation.statut %></span></p>
+                                </div>
+                            </div>
+                            <% if (formation.description) { %>
+                            <hr>
+                            <p><strong>Description:</strong></p>
+                            <p><%= formation.description %></p>
+                            <% } %>
+                            <% if (formation.objectifs) { %>
+                            <hr>
+                            <p><strong>Objectifs:</strong></p>
+                            <p><%= formation.objectifs %></p>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <!-- Liste des participants -->
+                    <div class="card">
+                        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Participants</h5>
+                            <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#inscrireModal">
+                                <i class="bi bi-person-plus"></i> Inscrire
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Type</th>
+                                        <th>Statut</th>
+                                        <th>Note</th>
+                                        <th>Certificat</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% participants.forEach(participant => { %>
+                                    <tr>
+                                        <td><%= participant.nom_complet %></td>
+                                        <td><%= participant.type_personnel %></td>
+                                        <td>
+                                            <span class="badge bg-<%= participant.statut === 'Validé' ? 'success' : 'primary' %>">
+                                                <%= participant.statut %>
+                                            </span>
+                                        </td>
+                                        <td><%= participant.note_evaluation || '-' %></td>
+                                        <td>
+                                            <% if (participant.certificat_obtenu) { %>
+                                            <i class="bi bi-check-circle text-success"></i>
+                                            <% } else { %>
+                                            <i class="bi bi-x-circle text-muted"></i>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-success" onclick="validerParticipation(<%= participant.id %>)">
+                                                <i class="bi bi-check"></i> Valider
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistiques -->
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Statistiques</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-3">
+                                <span>Inscrits:</span>
+                                <strong><%= participants.length %></strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3">
+                                <span>Validés:</span>
+                                <strong><%= participants.filter(p => p.statut === 'Validé').length %></strong>
+                            </div>
+                            <% if (formation.cout) { %>
+                            <div class="d-flex justify-content-between">
+                                <span>Coût total:</span>
+                                <strong><%= (formation.cout * participants.length).toLocaleString('fr-FR') %> XOF</strong>
+                            </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Inscrire -->
+    <div class="modal fade" id="inscrireModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" action="/rh/formations/<%= formation.id %>/inscrire">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Inscrire un participant</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label">Sélectionner le personnel</label>
+                        <select class="form-select" name="personnel_id" required>
+                            <option value="">Choisir...</option>
+                            <% personnel.forEach(p => { %>
+                            <option value="<%= p.id %>"><%= p.prenom %> <%= p.nom %> (<%= p.type_personnel %>)</option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Inscrire</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function validerParticipation(inscriptionId) {
+            // Implémentation validation
+            alert('Validation participation ' + inscriptionId);
+        }
+    </script>
+</body>
+</html>

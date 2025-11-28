@@ -1,0 +1,663 @@
+<!-- ==================== views/equipes.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Équipes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <style>
+        .team-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .team-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        .team-header {
+            background: linear-gradient(135deg, #6c5b7b 0%, #8b7a9b 100%);
+            color: white;
+            padding: 20px;
+        }
+        .team-member {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+        .team-member:hover {
+            background: #f8f9fa;
+        }
+        .team-member:last-child {
+            border-bottom: none;
+        }
+        .badge-role {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        .dept-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+        .stat-card {
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+    </style>
+    
+</head>
+<body>
+ <%- include('partials/sidebar', { currentPage: 'dashboard' }) %>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-10 offset-md-2 px-4 py-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2><i class="bi bi-people-fill text-primary"></i> Gestion des Équipes</h2>
+                        <p class="text-muted mb-0">Organisation et composition des équipes du laboratoire</p>
+                    </div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTeamModal">
+                        <i class="bi bi-plus-circle me-2"></i> Créer une Équipe
+                    </button>
+                </div>
+
+                <!-- Filtres -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Département</label>
+                                <select class="form-select" id="filterDepartement">
+                                    <option value="">Tous les départements</option>
+                                    <option value="Biochimie">Biochimie</option>
+                                    <option value="Hématologie">Hématologie</option>
+                                    <option value="Microbiologie">Microbiologie</option>
+                                    <option value="Biologie Délocalisée">Biologie Délocalisée</option>
+                                    <option value="Immuno-Séro-Electro">Immuno-Séro-Electro</option>
+                                    <option value="Immuno-Hémato">Immuno-Hémato</option>
+                                    <option value="Administration">Administration</option>
+                                    <option value="Support">Support</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Taille d'équipe</label>
+                                <select class="form-select" id="filterTaille">
+                                    <option value="">Toutes les tailles</option>
+                                    <option value="1-5">1-5 membres</option>
+                                    <option value="6-10">6-10 membres</option>
+                                    <option value="11-20">11-20 membres</option>
+                                    <option value="20+">Plus de 20 membres</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Recherche</label>
+                                <input type="text" class="form-control" id="searchTeam" placeholder="Nom d'équipe ou responsable...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistiques -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card stat-card text-center">
+                            <div class="card-body">
+                                <h3 class="text-primary mb-0" id="totalEquipes">0</h3>
+                                <small class="text-muted">Équipes Totales</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card text-center">
+                            <div class="card-body">
+                                <h3 class="text-success mb-0" id="totalMembres">0</h3>
+                                <small class="text-muted">Membres Totaux</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card text-center">
+                            <div class="card-body">
+                                <h3 class="text-warning mb-0" id="moyenneMembres">0</h3>
+                                <small class="text-muted">Moyenne par Équipe</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stat-card text-center">
+                            <div class="card-body">
+                                <h3 class="text-info mb-0" id="totalDepartements">0</h3>
+                                <small class="text-muted">Départements</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Liste des équipes -->
+                <div id="teamsContainer" class="row"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Créer/Modifier Équipe -->
+    <div class="modal fade" id="createTeamModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-plus-circle me-2"></i> Créer une Nouvelle Équipe</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="teamForm">
+                    <input type="hidden" id="teamId" name="id">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nom de l'équipe *</label>
+                                <input type="text" class="form-control" name="nom" id="teamNom" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Département *</label>
+                                <select class="form-select" name="departement" id="teamDepartement" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="Biochimie">Biochimie</option>
+                                    <option value="Hématologie">Hématologie</option>
+                                    <option value="Microbiologie">Microbiologie</option>
+                                    <option value="Biologie Délocalisée">Biologie Délocalisée</option>
+                                    <option value="Immuno-Séro-Electro">Immuno-Séro-Electro</option>
+                                    <option value="Immuno-Hémato">Immuno-Hémato</option>
+                                    <option value="Administration">Administration</option>
+                                    <option value="Support">Support</option>
+                                </select>
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Responsable *</label>
+                                <select class="form-select" name="responsable_id" id="responsableSelect" required>
+                                    <option value="">Chargement...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="description" id="teamDescription" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-2"></i> <span id="submitBtnText">Créer l'Équipe</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Détails Équipe -->
+    <div class="modal fade" id="teamDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="teamDetailsTitle"></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="teamDetailsContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ajouter Membres -->
+    <div class="modal fade" id="addMembersModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i> Ajouter des Membres</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="currentTeamId">
+                    <div class="mb-3">
+                        <label class="form-label">Rechercher un membre</label>
+                        <input type="text" class="form-control" id="searchMember" placeholder="Nom, prénom ou matricule...">
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Matricule</th>
+                                    <th>Nom</th>
+                                    <th>Type</th>
+                                    <th>Email</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="availableMembersList"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let allTeams = [];
+        let allPersonnel = [];
+        let currentEditTeamId = null;
+
+        // Charger les équipes
+        async function loadTeams() {
+            try {
+                const response = await fetch('/equipes/api/list');
+                const data = await response.json();
+                allTeams = data;
+                displayTeams(allTeams);
+                updateStatistics(allTeams);
+            } catch (err) {
+                console.error('Erreur:', err);
+                showAlert('Erreur lors du chargement des équipes', 'danger');
+            }
+        }
+
+        // Afficher les équipes
+        function displayTeams(teams) {
+            const container = $('#teamsContainer');
+            container.empty();
+
+            if (teams.length === 0) {
+                container.html(`
+                    <div class="col-12 text-center py-5">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <p class="text-muted mt-3">Aucune équipe trouvée</p>
+                    </div>
+                `);
+                return;
+            }
+
+            teams.forEach(team => {
+                const card = `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="team-card card">
+                            <div class="team-header">
+                                <h5 class="mb-1">${team.nom}</h5>
+                                <span class="dept-badge">${team.departement}</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="bi bi-person-badge text-primary me-2 fs-4"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Responsable</small>
+                                        <strong>${team.responsable_nom || 'Non assigné'}</strong>
+                                    </div>
+                                </div>
+                                ${team.description ? `<p class="text-muted small mb-3">${team.description.substring(0, 100)}${team.description.length > 100 ? '...' : ''}</p>` : ''}
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="bi bi-people-fill text-success me-2"></i>
+                                        <span class="badge bg-success">${team.nombre_membres} membre(s)</span>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewTeamDetails(${team.id})">
+                                        <i class="bi bi-eye"></i> Détails
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-light">
+                                <div class="btn-group w-100">
+                                    <button class="btn btn-sm btn-outline-success" onclick="addMembers(${team.id})" title="Ajouter des membres">
+                                        <i class="bi bi-person-plus"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editTeam(${team.id})" title="Modifier l'équipe">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTeam(${team.id}, '${team.nom}')" title="Supprimer l'équipe">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.append(card);
+            });
+        }
+
+        // Mettre à jour les statistiques
+        function updateStatistics(teams) {
+            const totalMembres = teams.reduce((sum, team) => sum + team.nombre_membres, 0);
+            const departements = new Set(teams.map(t => t.departement));
+            
+            $('#totalEquipes').text(teams.length);
+            $('#totalMembres').text(totalMembres);
+            $('#moyenneMembres').text(teams.length > 0 ? Math.round(totalMembres / teams.length) : 0);
+            $('#totalDepartements').text(departements.size);
+        }
+
+        // Voir les détails d'une équipe
+        async function viewTeamDetails(teamId) {
+            try {
+                const response = await fetch(`/equipes/api/details/${teamId}`);
+                const team = await response.json();
+                
+                $('#teamDetailsTitle').html(`<i class="bi bi-people-fill me-2"></i>${team.nom} - ${team.departement}`);
+                
+                let content = `
+                    <div class="mb-4">
+                        <h6 class="text-muted">Informations Générales</h6>
+                        <p><strong>Responsable:</strong> ${team.responsable_nom} (${team.responsable_email})</p>
+                        ${team.description ? `<p><strong>Description:</strong> ${team.description}</p>` : ''}
+                    </div>
+                    <h6 class="text-muted mb-3">Membres de l'équipe (${team.membres.length})</h6>
+                `;
+                
+                if (team.membres.length > 0) {
+                    content += '<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Matricule</th><th>Nom</th><th>Type</th><th>Email</th><th>Téléphone</th><th>Date d\'intégration</th><th>Actions</th></tr></thead><tbody>';
+                    
+                    team.membres.forEach(membre => {
+                        content += `
+                            <tr>
+                                <td><span class="badge bg-secondary">${membre.matricule}</span></td>
+                                <td>${membre.nom_complet}</td>
+                                <td><span class="badge-role bg-info text-white">${membre.type_personnel}</span></td>
+                                <td>${membre.email}</td>
+                                <td>${membre.telephone || 'N/A'}</td>
+                                <td>${new Date(membre.date_integration).toLocaleDateString('fr-FR')}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="removeMember(${teamId}, ${membre.personnel_id}, '${membre.nom_complet}')">
+                                        <i class="bi bi-x-circle"></i> Retirer
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    content += '</tbody></table></div>';
+                } else {
+                    content += '<p class="text-center text-muted py-4">Aucun membre dans cette équipe</p>';
+                }
+                
+                $('#teamDetailsContent').html(content);
+                $('#teamDetailsModal').modal('show');
+            } catch (err) {
+                showAlert('Erreur lors du chargement des détails', 'danger');
+            }
+        }
+
+        // Charger les responsables disponibles
+        async function loadResponsables() {
+            try {
+                const response = await fetch('/personnel/api/list');
+                const data = await response.json();
+                allPersonnel = data.data;
+                
+                const select = $('#responsableSelect');
+                select.empty();
+                select.append('<option value="">Sélectionner un responsable...</option>');
+                
+                data.data
+                    .filter(p => ['Biologiste', 'Cadre'].includes(p.type_personnel))
+                    .forEach(p => {
+                        select.append(`<option value="${p.id}">${p.prenom} ${p.nom} (${p.type_personnel})</option>`);
+                    });
+            } catch (err) {
+                console.error('Erreur:', err);
+            }
+        }
+
+        // Créer ou modifier une équipe
+        $('#teamForm').on('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            const isEdit = currentEditTeamId !== null;
+            const url = isEdit ? `/equipes/update/${currentEditTeamId}` : '/equipes/create';
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    $('#createTeamModal').modal('hide');
+                    this.reset();
+                    currentEditTeamId = null;
+                    loadTeams();
+                    showAlert(isEdit ? 'Équipe modifiée avec succès' : 'Équipe créée avec succès', 'success');
+                }
+            } catch (err) {
+                showAlert('Erreur lors de l\'opération', 'danger');
+            }
+        });
+
+        // Modifier une équipe
+        async function editTeam(teamId) {
+            try {
+                const response = await fetch(`/equipes/api/details/${teamId}`);
+                const team = await response.json();
+                
+                currentEditTeamId = teamId;
+                $('#modalTitle').html('<i class="bi bi-pencil me-2"></i> Modifier l\'Équipe');
+                $('#submitBtnText').text('Modifier l\'Équipe');
+                
+                $('#teamNom').val(team.nom);
+                $('#teamDepartement').val(team.departement);
+                $('#responsableSelect').val(team.responsable_id);
+                $('#teamDescription').val(team.description);
+                
+                $('#createTeamModal').modal('show');
+            } catch (err) {
+                showAlert('Erreur lors du chargement de l\'équipe', 'danger');
+            }
+        }
+
+        // Réinitialiser le modal lors de sa fermeture
+        $('#createTeamModal').on('hidden.bs.modal', function() {
+            currentEditTeamId = null;
+            $('#teamForm')[0].reset();
+            $('#modalTitle').html('<i class="bi bi-plus-circle me-2"></i> Créer une Nouvelle Équipe');
+            $('#submitBtnText').text('Créer l\'Équipe');
+        });
+
+        // Supprimer une équipe
+        async function deleteTeam(teamId, teamName) {
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer l'équipe "${teamName}" ?\n\nAttention: Cette action est irréversible.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/equipes/delete/${teamId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadTeams();
+                    showAlert('Équipe supprimée avec succès', 'success');
+                }
+            } catch (err) {
+                showAlert('Erreur lors de la suppression', 'danger');
+            }
+        }
+
+        // Ajouter des membres
+        async function addMembers(teamId) {
+            $('#currentTeamId').val(teamId);
+            await loadAvailableMembers(teamId);
+            $('#addMembersModal').modal('show');
+        }
+
+        // Charger les membres disponibles
+        async function loadAvailableMembers(teamId) {
+            try {
+                const teamResponse = await fetch(`/equipes/api/details/${teamId}`);
+                const team = await teamResponse.json();
+                const currentMemberIds = team.membres.map(m => m.personnel_id);
+                
+                const personnelResponse = await fetch('/personnel/api/list');
+                const data = await personnelResponse.json();
+                
+                const availableMembers = data.data.filter(p => !currentMemberIds.includes(p.id));
+                
+                displayAvailableMembers(availableMembers);
+            } catch (err) {
+                showAlert('Erreur lors du chargement des membres', 'danger');
+            }
+        }
+
+        // Afficher les membres disponibles
+        function displayAvailableMembers(members) {
+            const tbody = $('#availableMembersList');
+            tbody.empty();
+            
+            if (members.length === 0) {
+                tbody.html('<tr><td colspan="5" class="text-center text-muted py-4">Aucun membre disponible</td></tr>');
+                return;
+            }
+            
+            members.forEach(member => {
+                tbody.append(`
+                    <tr>
+                        <td><span class="badge bg-secondary">${member.matricule}</span></td>
+                        <td>${member.prenom} ${member.nom}</td>
+                        <td><span class="badge bg-info">${member.type_personnel}</span></td>
+                        <td>${member.email}</td>
+                        <td>
+                            <button class="btn btn-sm btn-success" onclick="confirmAddMember(${member.id}, '${member.prenom} ${member.nom}')">
+                                <i class="bi bi-plus-circle"></i> Ajouter
+                            </button>
+                        </td>
+                    </tr>
+                `);
+            });
+        }
+
+        // Recherche de membres
+        $('#searchMember').on('keyup', function() {
+            const search = $(this).val().toLowerCase();
+            $('#availableMembersList tr').each(function() {
+                const text = $(this).text().toLowerCase();
+                $(this).toggle(text.includes(search));
+            });
+        });
+
+        // Confirmer l'ajout d'un membre
+        async function confirmAddMember(personnelId, memberName) {
+            const teamId = $('#currentTeamId').val();
+            
+            try {
+                const response = await fetch('/equipes/add-member', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ equipe_id: teamId, personnel_id: personnelId })
+                });
+                
+                if (response.ok) {
+                    showAlert(`${memberName} a été ajouté à l'équipe`, 'success');
+                    loadAvailableMembers(teamId);
+                    loadTeams();
+                    
+                    // Si le modal des détails est ouvert, le rafraîchir
+                    if ($('#teamDetailsModal').hasClass('show')) {
+                        viewTeamDetails(teamId);
+                    }
+                } else {
+                    const error = await response.json();
+                    showAlert(error.error || 'Erreur lors de l\'ajout', 'danger');
+                }
+            } catch (err) {
+                showAlert('Erreur lors de l\'ajout du membre', 'danger');
+            }
+        }
+
+        // Retirer un membre
+        async function removeMember(teamId, personnelId, memberName) {
+            if (!confirm(`Êtes-vous sûr de vouloir retirer ${memberName} de cette équipe ?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/equipes/remove-member/${teamId}/${personnelId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showAlert(`${memberName} a été retiré de l'équipe`, 'success');
+                    viewTeamDetails(teamId);
+                    loadTeams();
+                } else {
+                    showAlert('Erreur lors du retrait', 'danger');
+                }
+            } catch (err) {
+                showAlert('Erreur lors du retrait du membre', 'danger');
+            }
+        }
+
+        // Filtres
+        $('#filterDepartement, #filterTaille').on('change', filterTeams);
+        $('#searchTeam').on('keyup', filterTeams);
+
+        function filterTeams() {
+            const dept = $('#filterDepartement').val();
+            const taille = $('#filterTaille').val();
+            const search = $('#searchTeam').val().toLowerCase();
+            
+            let filtered = allTeams.filter(team => {
+                const matchDept = !dept || team.departement === dept;
+                const matchSearch = !search || team.nom.toLowerCase().includes(search) || 
+                                   (team.responsable_nom && team.responsable_nom.toLowerCase().includes(search));
+                
+                let matchTaille = true;
+                if (taille) {
+                    const membres = team.nombre_membres;
+                    if (taille === '1-5') matchTaille = membres >= 1 && membres <= 5;
+                    else if (taille === '6-10') matchTaille = membres >= 6 && membres <= 10;
+                    else if (taille === '11-20') matchTaille = membres >= 11 && membres <= 20;
+                    else if (taille === '20+') matchTaille = membres > 20;
+                }
+                
+                return matchDept && matchTaille && matchSearch;
+            });
+            
+            displayTeams(filtered);
+            updateStatistics(filtered);
+        }
+
+        // Afficher les alertes
+        function showAlert(message, type) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            $('body').append(alertHtml);
+            setTimeout(() => $('.alert').alert('close'), 3000);
+        }
+
+        // Initialisation
+        $(document).ready(function() {
+            loadTeams();
+            loadResponsables();
+        });
+    </script>
+</body>
+</html>

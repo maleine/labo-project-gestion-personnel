@@ -1,0 +1,377 @@
+<!-- ==================== views/pointage-admin.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion Pointages - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <%- include('partials/sidebar', { currentPage: 'pointage-admin' }) %>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-10 offset-md-2 px-4 py-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2><i class="bi bi-clipboard-check text-primary"></i> Gestion des Pointages</h2>
+                        <p class="text-muted mb-0">Vue d'ensemble de la présence du personnel</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-success" onclick="refreshData()">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Actualiser
+                        </button>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#statsModal">
+                            <i class="bi bi-graph-up me-2"></i>Statistiques
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Cartes de statistiques -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <p class="text-muted mb-1">Présents</p>
+                                        <h3 class="mb-0 text-success" id="statPresents"><%= pointages.length %></h3>
+                                    </div>
+                                    <div class="text-success" style="font-size: 2.5rem;">
+                                        <i class="bi bi-person-check"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card border-danger">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <p class="text-muted mb-1">Absents</p>
+                                        <h3 class="mb-0 text-danger" id="statAbsents"><%= absences.length %></h3>
+                                    </div>
+                                    <div class="text-danger" style="font-size: 2.5rem;">
+                                        <i class="bi bi-person-x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <p class="text-muted mb-1">Retards</p>
+                                        <h3 class="mb-0 text-warning" id="statRetards">
+                                            <%= pointages.filter(p => p.ponctualite === 'Retard').length %>
+                                        </h3>
+                                    </div>
+                                    <div class="text-warning" style="font-size: 2.5rem;">
+                                        <i class="bi bi-clock-history"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <p class="text-muted mb-1">Partis</p>
+                                        <h3 class="mb-0 text-info" id="statPartis">
+                                            <%= pointages.filter(p => p.statut === 'Parti').length %>
+                                        </h3>
+                                    </div>
+                                    <div class="text-info" style="font-size: 2.5rem;">
+                                        <i class="bi bi-box-arrow-right"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#presents">
+                            <i class="bi bi-check-circle me-2"></i>Personnel Présent
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#absents">
+                            <i class="bi bi-x-circle me-2"></i>Personnel Absent
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Tab Content -->
+                <div class="tab-content">
+                    <!-- Personnel Présent -->
+                    <div class="tab-pane fade show active" id="presents">
+                        <div class="card">
+                            <div class="card-body">
+                                <table id="tablePresents" class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Matricule</th>
+                                            <th>Nom Complet</th>
+                                            <th>Type</th>
+                                            <th>Arrivée</th>
+                                            <th>Départ</th>
+                                            <th>Durée</th>
+                                            <th>Statut</th>
+                                            <th>Ponctualité</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% pointages.forEach(p => { %>
+                                        <tr>
+                                            <td><strong><%= p.matricule %></strong></td>
+                                            <td><%= p.prenom %> <%= p.nom %></td>
+                                            <td><span class="badge bg-secondary"><%= p.type_personnel %></span></td>
+                                            <td>
+                                                <i class="bi bi-clock me-1"></i>
+                                                <%= new Date(p.heure_arrivee).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) %>
+                                            </td>
+                                            <td>
+                                                <% if (p.heure_depart) { %>
+                                                    <i class="bi bi-clock-fill me-1"></i>
+                                                    <%= new Date(p.heure_depart).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) %>
+                                                <% } else { %>
+                                                    <span class="text-muted">--:--</span>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <% if (p.duree_travail) { %>
+                                                    <%= Math.floor(p.duree_travail / 60) %>h <%= p.duree_travail % 60 %>m
+                                                <% } else { %>
+                                                    <span class="text-muted">En cours</span>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <% if (p.statut === 'Présent') { %>
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check-circle me-1"></i>Présent
+                                                    </span>
+                                                <% } else { %>
+                                                    <span class="badge bg-info">
+                                                        <i class="bi bi-box-arrow-right me-1"></i>Parti
+                                                    </span>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <% if (p.ponctualite === 'Retard') { %>
+                                                    <span class="badge bg-warning">
+                                                        <i class="bi bi-exclamation-triangle me-1"></i>Retard
+                                                    </span>
+                                                <% } else { %>
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check me-1"></i>À l'heure
+                                                    </span>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary" 
+                                                        onclick="editPointage(<%= p.id %>)">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Personnel Absent -->
+                    <div class="tab-pane fade" id="absents">
+                        <div class="card">
+                            <div class="card-body">
+                                <table id="tableAbsents" class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Matricule</th>
+                                            <th>Nom Complet</th>
+                                            <th>Type</th>
+                                            <th>Email</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% absences.forEach(a => { %>
+                                        <tr>
+                                            <td><strong><%= a.matricule %></strong></td>
+                                            <td><%= a.prenom %> <%= a.nom %></td>
+                                            <td><span class="badge bg-secondary"><%= a.type_personnel %></span></td>
+                                            <td><%= a.email %></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-warning" 
+                                                        onclick="notifyAbsent('<%= a.email %>')">
+                                                    <i class="bi bi-envelope me-1"></i>Notifier
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Statistiques -->
+    <div class="modal fade" id="statsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-graph-up me-2"></i>Statistiques Détaillées
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Date de début</label>
+                            <input type="date" class="form-control" id="dateDebut">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date de fin</label>
+                            <input type="date" class="form-control" id="dateFin">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mb-3" onclick="loadStats()">
+                        <i class="bi bi-search me-2"></i>Générer
+                    </button>
+                    <div id="statsContent">
+                        <p class="text-muted">Sélectionnez une période et cliquez sur Générer</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#tablePresents').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/fr-FR.json'
+                },
+                order: [[3, 'asc']] // Trier par heure d'arrivée
+            });
+            
+            $('#tableAbsents').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/fr-FR.json'
+                }
+            });
+        });
+        
+        function refreshData() {
+            location.reload();
+        }
+        
+        function editPointage(id) {
+            // Implémenter l'édition
+            alert('Fonction d\'édition à implémenter pour le pointage ID: ' + id);
+        }
+        
+        function notifyAbsent(email) {
+            if (confirm('Envoyer une notification à ' + email + ' ?')) {
+                alert('Notification envoyée (fonctionnalité à implémenter)');
+            }
+        }
+        
+        function loadStats() {
+            const dateDebut = $('#dateDebut').val();
+            const dateFin = $('#dateFin').val();
+            
+            if (!dateDebut || !dateFin) {
+                alert('Veuillez sélectionner les deux dates');
+                return;
+            }
+            
+            $.get('/pointage/api/admin/statistiques', { dateDebut, dateFin }, function(response) {
+                if (response.success) {
+                    const stats = response.stats;
+                    let html = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card border-primary mb-3">
+                                    <div class="card-body">
+                                        <h6>Personnel Présent</h6>
+                                        <h3 class="text-primary">${stats.personnel_present || 0}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-info mb-3">
+                                    <div class="card-body">
+                                        <h6>Total Pointages</h6>
+                                        <h3 class="text-info">${stats.total_pointages || 0}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-success mb-3">
+                                    <div class="card-body">
+                                        <h6>Durée Moyenne</h6>
+                                        <h3 class="text-success">
+                                            ${Math.floor((stats.duree_moyenne || 0) / 60)}h 
+                                            ${Math.floor((stats.duree_moyenne || 0) % 60)}m
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-warning mb-3">
+                                    <div class="card-body">
+                                        <h6>Retards</h6>
+                                        <h3 class="text-warning">${stats.retards || 0}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-danger mb-3">
+                                    <div class="card-body">
+                                        <h6>Départs Anticipés</h6>
+                                        <h3 class="text-danger">${stats.departs_anticipes || 0}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    $('#statsContent').html(html);
+                }
+            });
+        }
+        
+        // Initialiser les dates par défaut (mois en cours)
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        $('#dateDebut').val(firstDay.toISOString().split('T')[0]);
+        $('#dateFin').val(today.toISOString().split('T')[0]);
+    </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!-- ==================== views/rh/formations-form.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= formation ? 'Modifier' : 'Créer' %> Formation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+     <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+     <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    
+    <div class="main-content">
+        <div class="container-fluid px-4 py-4">
+            <h2 class="mb-4">
+                <%= formation ? 'Modifier' : 'Créer' %> une Formation
+            </h2>
+
+            <form method="POST" action="/rh/formations/<%= formation ? 'update/' + formation.id : 'create' %>">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Informations Générales</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Référence <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="reference" 
+                                       value="<%= formation ? formation.reference : 'FORM-' + Date.now() %>" required>
+                            </div>
+                            <div class="col-md-9">
+                                <label class="form-label">Titre <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="titre" 
+                                       value="<%= formation ? formation.titre : '' %>" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Type de Formation <span class="text-danger">*</span></label>
+                                <select class="form-select" name="type_formation" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="Intégration" <%= formation && formation.type_formation === 'Intégration' ? 'selected' : '' %>>
+                                        Programme d'Intégration
+                                    </option>
+                                    <option value="Continue" <%= formation && formation.type_formation === 'Continue' ? 'selected' : '' %>>
+                                        Formation Continue
+                                    </option>
+                                    <option value="Habilitation" <%= formation && formation.type_formation === 'Habilitation' ? 'selected' : '' %>>
+                                        Formation Habilitation
+                                    </option>
+                                    <option value="Perfectionnement" <%= formation && formation.type_formation === 'Perfectionnement' ? 'selected' : '' %>>
+                                        Perfectionnement
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Organisme</label>
+                                <input type="text" class="form-control" name="organisme" 
+                                       value="<%= formation ? formation.organisme || '' : '' %>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Date Début</label>
+                                <input type="date" class="form-control" name="date_debut" 
+                                       value="<%= formation && formation.date_debut ? formation.date_debut.toISOString().split('T')[0] : '' %>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Date Fin</label>
+                                <input type="date" class="form-control" name="date_fin" 
+                                       value="<%= formation && formation.date_fin ? formation.date_fin.toISOString().split('T')[0] : '' %>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Durée (heures)</label>
+                                <input type="number" class="form-control" name="duree_heures" 
+                                       value="<%= formation ? formation.duree_heures || '' : '' %>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Lieu</label>
+                                <input type="text" class="form-control" name="lieu" 
+                                       value="<%= formation ? formation.lieu || '' : '' %>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Coût (XOF)</label>
+                                <input type="number" step="0.01" class="form-control" name="cout" 
+                                       value="<%= formation ? formation.cout || '' : '' %>">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="description" rows="3"><%= formation ? formation.description || '' : '' %></textarea>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Objectifs</label>
+                                <textarea class="form-control" name="objectifs" rows="3"><%= formation ? formation.objectifs || '' : '' %></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-2"></i> Enregistrer
+                    </button>
+                    <a href="/rh/formations" class="btn btn-secondary">
+                        <i class="bi bi-x-circle me-2"></i> Annuler
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

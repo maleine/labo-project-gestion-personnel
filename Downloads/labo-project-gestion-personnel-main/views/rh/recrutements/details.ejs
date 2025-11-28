@@ -1,0 +1,360 @@
+<!-- views/rh/recrutements/details.ejs -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recrutement: <%= recrutement.reference %> - Lab Manager</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    .status-timeline {
+      position: relative;
+      padding-left: 30px;
+    }
+    .status-timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #dee2e6;
+    }
+    .status-item {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .status-item::before {
+      content: '';
+      position: absolute;
+      left: -24px;
+      top: 5px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #dee2e6;
+    }
+    .status-item.active::before {
+      background: #0d6efd;
+      border-color: #0d6efd;
+    }
+  </style>
+</head>
+<body>
+  <div class="d-flex">
+    <%- include('../../partials/sidebar') %>
+    
+    <div class="main-content" style="margin-left: 260px; width: calc(100% - 260px);">
+     
+      
+      <div class="container-fluid p-4">
+        <!-- En-tête -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h2><i class="bi bi-person-plus text-success"></i> Détails du Recrutement</h2>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/dashboard">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="/rh/dashboard">RH</a></li>
+                <li class="breadcrumb-item"><a href="/rh/recrutements">Recrutements</a></li>
+                <li class="breadcrumb-item active"><%= recrutement.reference %></li>
+              </ol>
+            </nav>
+          </div>
+          <div>
+            <a href="/rh/recrutements/<%= recrutement.id %>/edit" class="btn btn-primary">
+              <i class="bi bi-pencil"></i> Modifier
+            </a>
+            <a href="/rh/recrutements" class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-left"></i> Retour
+            </a>
+          </div>
+        </div>
+
+        <div class="row">
+          <!-- Colonne principale -->
+          <div class="col-lg-8">
+            
+            <!-- Informations générales -->
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0">
+                    <i class="bi bi-briefcase"></i> <%= recrutement.poste_nom %>
+                  </h5>
+                  <% 
+                  let badgeClass = 'secondary';
+                  switch(recrutement.statut) {
+                    case 'Ouvert': badgeClass = 'success'; break;
+                    case 'En cours': badgeClass = 'warning'; break;
+                    case 'Cloturé': badgeClass = 'info'; break;
+                    case 'Annulé': badgeClass = 'danger'; break;
+                  }
+                  %>
+                  <span class="badge bg-<%= badgeClass %>"><%= recrutement.statut %></span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="row mb-3">
+                  <div class="col-md-4">
+                    <label class="text-muted small">Référence</label>
+                    <div class="fw-bold"><%= recrutement.reference %></div>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="text-muted small">Type de contrat</label>
+                    <div><span class="badge bg-primary"><%= recrutement.type_recrutement %></span></div>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="text-muted small">Nombre de postes</label>
+                    <div class="fw-bold"><%= recrutement.nombre_postes %></div>
+                  </div>
+                </div>
+
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="text-muted small">Date d'ouverture</label>
+                    <div>
+                      <i class="bi bi-calendar-check text-success"></i> 
+                      <%= new Date(recrutement.date_ouverture).toLocaleDateString('fr-FR') %>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="text-muted small">Date de clôture</label>
+                    <div>
+                      <i class="bi bi-calendar-x text-danger"></i> 
+                      <%= new Date(recrutement.date_cloture).toLocaleDateString('fr-FR') %>
+                      <% 
+                      const today = new Date();
+                      const cloture = new Date(recrutement.date_cloture);
+                      const joursRestants = Math.ceil((cloture - today) / (1000 * 60 * 60 * 24));
+                      %>
+                      <% if (joursRestants > 0 && recrutement.statut !== 'Cloturé') { %>
+                      <span class="badge bg-warning ms-2"><%= joursRestants %> jours restants</span>
+                      <% } else if (joursRestants <= 0 && recrutement.statut !== 'Cloturé') { %>
+                      <span class="badge bg-danger ms-2">Dépassé</span>
+                      <% } %>
+                    </div>
+                  </div>
+                </div>
+
+                <% if (recrutement.demandeur_nom) { %>
+                <div class="mb-0">
+                  <label class="text-muted small">Demandé par</label>
+                  <div>
+                    <i class="bi bi-person"></i> 
+                    <%= recrutement.demandeur_prenom %> <%= recrutement.demandeur_nom %>
+                  </div>
+                </div>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Description du poste -->
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-file-text"></i> Description du Poste</h5>
+              </div>
+              <div class="card-body">
+                <% if (recrutement.description) { %>
+                <div class="description-content">
+                  <%= recrutement.description %>
+                </div>
+                <% } else { %>
+                <p class="text-muted mb-0">Aucune description disponible</p>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Profil recherché -->
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-person-check"></i> Profil Recherché & Exigences</h5>
+              </div>
+              <div class="card-body">
+                <% if (recrutement.exigences) { %>
+                <div class="exigences-content">
+                  <%= recrutement.exigences %>
+                </div>
+                <% } else { %>
+                <p class="text-muted mb-0">Aucune exigence spécifiée</p>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Compétences requises -->
+            <% if (competences && competences.length > 0) { %>
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                  <i class="bi bi-star"></i> 
+                  Compétences Requises (<%= competences.length %>)
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <% competences.forEach(comp => { 
+                    let niveauClass = 'secondary';
+                    switch(comp.niveau_requis) {
+                      case 'Expert': niveauClass = 'danger'; break;
+                      case 'Confirmé': niveauClass = 'success'; break;
+                      case 'Intermédiaire': niveauClass = 'warning'; break;
+                      case 'Débutant': niveauClass = 'info'; break;
+                    }
+                  %>
+                  <div class="col-md-6">
+                    <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                      <div>
+                        <strong><%= comp.nom %></strong>
+                        <br><small class="text-muted"><%= comp.categorie %></small>
+                      </div>
+                      <span class="badge bg-<%= niveauClass %>"><%= comp.niveau_requis %></span>
+                    </div>
+                  </div>
+                  <% }) %>
+                </div>
+              </div>
+            </div>
+            <% } %>
+
+          </div>
+
+          <!-- Colonne latérale -->
+          <div class="col-lg-4">
+            
+            <!-- Actions rapides -->
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-lightning"></i> Actions</h6>
+              </div>
+              <div class="card-body">
+                <% if (recrutement.statut === 'Brouillon') { %>
+                <button class="btn btn-success w-100 mb-2" onclick="changerStatut('Ouvert')">
+                  <i class="bi bi-door-open"></i> Ouvrir le recrutement
+                </button>
+                <% } else if (recrutement.statut === 'Ouvert') { %>
+                <button class="btn btn-warning w-100 mb-2" onclick="changerStatut('En cours')">
+                  <i class="bi bi-hourglass-split"></i> Passer en cours
+                </button>
+                <% } else if (recrutement.statut === 'En cours') { %>
+                <button class="btn btn-info w-100 mb-2" onclick="changerStatut('Cloturé')">
+                  <i class="bi bi-check-circle"></i> Clôturer
+                </button>
+                <% } %>
+                
+                <% if (recrutement.statut !== 'Annulé' && recrutement.statut !== 'Cloturé') { %>
+                <button class="btn btn-outline-danger w-100" onclick="changerStatut('Annulé')">
+                  <i class="bi bi-x-circle"></i> Annuler le recrutement
+                </button>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Timeline du statut -->
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-clock-history"></i> Historique</h6>
+              </div>
+              <div class="card-body">
+                <div class="status-timeline">
+                  <div class="status-item <%= recrutement.statut === 'Brouillon' ? 'active' : '' %>">
+                    <strong>Brouillon</strong>
+                    <br><small class="text-muted">
+                      <%= new Date(recrutement.created_at).toLocaleDateString('fr-FR') %>
+                    </small>
+                  </div>
+                  
+                  <div class="status-item <%= ['Ouvert', 'En cours', 'Cloturé'].includes(recrutement.statut) ? 'active' : '' %>">
+                    <strong>Ouvert</strong>
+                    <br><small class="text-muted">
+                      <%= new Date(recrutement.date_ouverture).toLocaleDateString('fr-FR') %>
+                    </small>
+                  </div>
+                  
+                  <div class="status-item <%= ['En cours', 'Cloturé'].includes(recrutement.statut) ? 'active' : '' %>">
+                    <strong>En cours</strong>
+                    <br><small class="text-muted">Candidatures en cours d'examen</small>
+                  </div>
+                  
+                  <div class="status-item <%= recrutement.statut === 'Cloturé' ? 'active' : '' %>">
+                    <strong>Cloturé</strong>
+                    <br><small class="text-muted">
+                      <%= new Date(recrutement.date_cloture).toLocaleDateString('fr-FR') %>
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Informations complémentaires -->
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> Informations</h6>
+              </div>
+              <div class="card-body">
+                <small class="text-muted">
+                  <div class="mb-2">
+                    <i class="bi bi-tag"></i> Code poste: <strong><%= recrutement.poste_code %></strong>
+                  </div>
+                  <div class="mb-2">
+                    <i class="bi bi-calendar"></i> Créé le: 
+                    <%= new Date(recrutement.created_at).toLocaleDateString('fr-FR') %>
+                  </div>
+                  <% if (recrutement.date_validation) { %>
+                  <div class="mb-2">
+                    <i class="bi bi-check-circle"></i> Validé le: 
+                    <%= new Date(recrutement.date_validation).toLocaleDateString('fr-FR') %>
+                  </div>
+                  <% } %>
+                  <% if (recrutement.valideur_nom) { %>
+                  <div class="mb-0">
+                    <i class="bi bi-person-check"></i> Validé par: 
+                    <%= recrutement.valideur_prenom %> <%= recrutement.valideur_nom %>
+                  </div>
+                  <% } %>
+                </small>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function changerStatut(nouveauStatut) {
+      if (!confirm(`Confirmer le changement de statut vers "${nouveauStatut}" ?`)) {
+        return;
+      }
+
+      fetch('/rh/recrutements/<%= recrutement.id %>/statut', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statut: nouveauStatut })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert('Statut modifié avec succès');
+          location.reload();
+        } else {
+          alert('Erreur: ' + data.message);
+        }
+      })
+      .catch(err => {
+        alert('Erreur de communication avec le serveur');
+        console.error(err);
+      });
+    }
+
+    // Formatter le contenu texte en préservant les sauts de ligne
+    document.querySelectorAll('.description-content, .exigences-content').forEach(el => {
+      el.innerHTML = el.textContent.replace(/\n/g, '<br>');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Détails du Planning</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --sidebar-width: 250px;
+    }
+    
+    .main-content {
+      margin-left: var(--sidebar-width);
+      padding: 30px;
+      min-height: 100vh;
+      background-color: #f8f9fa;
+    }
+    
+    .planning-header {
+      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+      color: white;
+      border-radius: 15px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .affectation-card {
+      border-left: 4px solid #3498db;
+      transition: all 0.3s;
+      margin-bottom: 1rem;
+    }
+    
+    .affectation-card:hover {
+      transform: translateX(5px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .personnel-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    
+    .timeline {
+      position: relative;
+      padding-left: 30px;
+    }
+    
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #e0e0e0;
+    }
+    
+    .timeline-item {
+      position: relative;
+      margin-bottom: 2rem;
+    }
+    
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -24px;
+      top: 10px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #3498db;
+      border: 3px solid white;
+      box-shadow: 0 0 0 2px #3498db;
+    }
+    
+    .stat-card {
+      background: white;
+      border-radius: 10px;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .stat-card .icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .badge-custom {
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <%- include('../partials/sidebar') %>
+  
+  <%
+  // Fonction pour formater l'heure en HH:mm
+  function formatTime(timeValue) {
+    if (!timeValue) return null;
+    
+    try {
+      const date = new Date(timeValue);
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    } catch (e) {
+      return null;
+    }
+  }
+  %>
+  
+  <div class="main-content">
+    <div class="container-fluid">
+      <!-- Bouton retour -->
+      <div class="mb-3">
+        <a href="/absences/plannings" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left"></i> Retour aux plannings
+        </a>
+      </div>
+
+      <!-- En-tête du planning -->
+      <div class="planning-header">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h2 class="mb-2">
+              <i class="bi bi-<%= planning.type_planning === 'Garde de nuit' ? 'moon-stars' : 'calendar-week' %>"></i>
+              <%= planning.titre %>
+            </h2>
+            <p class="mb-2"><%= planning.description || 'Aucune description' %></p>
+            <div class="d-flex gap-3 flex-wrap">
+              <span>
+                <i class="bi bi-tag"></i> 
+                <strong>Référence:</strong> <%= planning.reference %>
+              </span>
+              <span>
+                <i class="bi bi-person"></i> 
+                <strong>Créateur:</strong> <%= planning.createur_nom %>
+              </span>
+              <% if (planning.departement_nom) { %>
+              <span>
+                <i class="bi bi-building"></i> 
+                <strong>Département:</strong> <%= planning.departement_nom %>
+              </span>
+              <% } %>
+            </div>
+          </div>
+          <div class="col-md-4 text-end">
+            <div class="mb-2">
+              <span class="badge badge-custom bg-<%= planning.statut === 'Publié' ? 'success' : planning.statut === 'Brouillon' ? 'warning' : 'danger' %>">
+                <%= planning.statut %>
+              </span>
+            </div>
+            <div class="fs-4">
+              <i class="bi bi-calendar-range"></i>
+              <%= new Date(planning.date_debut).toLocaleDateString('fr-FR') %> 
+              <i class="bi bi-arrow-right"></i>
+              <%= new Date(planning.date_fin).toLocaleDateString('fr-FR') %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistiques -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="stat-card">
+            <div class="icon text-primary">
+              <i class="bi bi-people-fill"></i>
+            </div>
+            <h3><%= affectations.length %></h3>
+            <small class="text-muted">Total Affectations</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card">
+            <div class="icon text-success">
+              <i class="bi bi-person-check-fill"></i>
+            </div>
+            <h3><%= new Set(affectations.map(a => a.personnel_id)).size %></h3>
+            <small class="text-muted">Personnel Unique</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card">
+            <div class="icon text-info">
+              <i class="bi bi-calendar-check-fill"></i>
+            </div>
+            <h3><%= new Set(affectations.map(a => new Date(a.date).toDateString())).size %></h3>
+            <small class="text-muted">Jours Couverts</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card">
+            <div class="icon text-warning">
+              <i class="bi bi-clock-fill"></i>
+            </div>
+            <h3>
+              <%= Math.ceil((new Date(planning.date_fin) - new Date(planning.date_debut)) / (1000 * 60 * 60 * 24)) + 1 %>
+            </h3>
+            <small class="text-muted">Durée (jours)</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="bi bi-tools"></i> Actions
+            </h5>
+            <div class="btn-group">
+              <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterAffectationModal">
+                <i class="bi bi-plus-circle"></i> Ajouter une affectation
+              </button>
+              <% if (planning.statut === 'Brouillon') { %>
+              <button class="btn btn-success" onclick="publierPlanning(<%= planning.id %>)">
+                <i class="bi bi-check-circle"></i> Publier le planning
+              </button>
+              <% } %>
+              <button class="btn btn-danger" onclick="supprimerPlanning(<%= planning.id %>)">
+                <i class="bi bi-trash"></i> Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Liste des affectations -->
+      <div class="card">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">
+            <i class="bi bi-list-check"></i> 
+            Affectations (<%= affectations.length %>)
+          </h5>
+        </div>
+        <div class="card-body">
+          <% if (affectations.length === 0) { %>
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> 
+            Aucune affectation pour ce planning. Commencez par ajouter des membres.
+          </div>
+          <% } else { %>
+          <div class="timeline">
+            <% 
+            // Grouper par date
+            const affectationsParDate = {};
+            affectations.forEach(aff => {
+              const dateStr = new Date(aff.date).toLocaleDateString('fr-FR');
+              if (!affectationsParDate[dateStr]) {
+                affectationsParDate[dateStr] = [];
+              }
+              affectationsParDate[dateStr].push(aff);
+            });
+            
+            // Afficher par date
+            Object.keys(affectationsParDate).sort().forEach(dateStr => {
+            %>
+            <div class="timeline-item">
+              <h6 class="text-primary mb-3">
+                <i class="bi bi-calendar-day"></i> <%= dateStr %>
+              </h6>
+              <div class="row g-3">
+                <% affectationsParDate[dateStr].forEach(aff => { 
+                  const initiales = aff.personnel_nom.split(' ').map(n => n[0]).join('');
+                  const heureDebut = formatTime(aff.heure_debut);
+                  const heureFin = formatTime(aff.heure_fin);
+                %>
+                <div class="col-md-6">
+                  <div class="card affectation-card">
+                    <div class="card-body">
+                      <div class="d-flex align-items-start">
+                        <div class="personnel-avatar me-3">
+                          <%= initiales %>
+                        </div>
+                        <div class="flex-grow-1">
+                          <h6 class="mb-1">
+                            <%= aff.personnel_nom %>
+                            <button class="btn btn-sm btn-outline-info ms-2" 
+                                    onclick="voirDetailsPersonnel(<%= aff.personnel_id %>)">
+                              <i class="bi bi-eye"></i>
+                            </button>
+                          </h6>
+                          <div class="mb-2">
+                            <% if (heureDebut && heureFin) { %>
+                            <span class="badge bg-info">
+                              <i class="bi bi-clock"></i>
+                              <%= heureDebut %> - <%= heureFin %>
+                            </span>
+                            <% } %>
+                            <% if (aff.poste) { %>
+                            <span class="badge bg-secondary">
+                              <i class="bi bi-briefcase"></i>
+                              <%= aff.poste %>
+                            </span>
+                            <% } %>
+                          </div>
+                          <div class="small text-muted">
+                            <i class="bi bi-telephone"></i> <%= aff.telephone || 'N/A' %>
+                            <br>
+                            <i class="bi bi-envelope"></i> <%= aff.email || 'N/A' %>
+                          </div>
+                          <% if (aff.commentaire) { %>
+                          <div class="alert alert-light mt-2 mb-0 small">
+                            <i class="bi bi-chat-left-text"></i> <%= aff.commentaire %>
+                          </div>
+                          <% } %>
+                        </div>
+                        <div>
+                          <button class="btn btn-sm btn-outline-danger" 
+                                  onclick="supprimerAffectation(<%= aff.id %>)">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <% }); %>
+              </div>
+            </div>
+            <% }); %>
+          </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Ajouter Affectation -->
+  <div class="modal fade" id="ajouterAffectationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-plus-circle"></i> Ajouter une Affectation
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="ajouterAffectationForm">
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Personnel <span class="text-danger">*</span></label>
+                <select class="form-select" name="personnel_id" required>
+                  <option value="">Sélectionner...</option>
+                  <% personnel.forEach(p => { %>
+                  <option value="<%= p.id %>">
+                    <%= p.prenom %> <%= p.nom %> (<%= p.type_personnel %>)
+                  </option>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" name="date" 
+                       min="<%= new Date(planning.date_debut).toISOString().split('T')[0] %>"
+                       max="<%= new Date(planning.date_fin).toISOString().split('T')[0] %>"
+                       required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Heure de début</label>
+                <input type="time" class="form-control" name="heure_debut">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Heure de fin</label>
+                <input type="time" class="form-control" name="heure_fin">
+              </div>
+              <div class="col-md-12">
+                <label class="form-label">Poste / Fonction</label>
+                <input type="text" class="form-control" name="poste" 
+                       placeholder="Ex: Garde de nuit, Responsable...">
+              </div>
+              <div class="col-md-12">
+                <label class="form-label">Commentaire</label>
+                <textarea class="form-control" name="commentaire" rows="3"
+                          placeholder="Consignes, remarques..."></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-circle"></i> Ajouter
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Détails Personnel -->
+  <div class="modal fade" id="detailsPersonnelModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">
+            <i class="bi bi-person-circle"></i> Détails du Personnel
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="detailsPersonnelContent">
+          <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Chargement...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Ajouter une affectation
+    document.getElementById('ajouterAffectationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(e.target);
+      const data = {};
+      
+      for (let [key, value] of formData.entries()) {
+        let trimmedValue = typeof value === 'string' ? value.trim() : value;
+
+        if ((key === 'heure_debut' || key === 'heure_fin') && trimmedValue !== '') {
+          if (/^\d{2}:\d{2}$/.test(trimmedValue)) {
+            trimmedValue += ":00";
+          }
+        }
+
+        if (trimmedValue !== '' && trimmedValue !== null && trimmedValue !== undefined) {
+          data[key] = trimmedValue;
+        }
+      }
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Ajout en cours...';
+      
+      try {
+        const response = await fetch('/absences/plannings/<%= planning.id %>/affecter', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('ajouterAffectationModal'));
+          modal.hide();
+          showAlert('success', 'Affectation ajoutée avec succès !');
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          throw new Error(result.error || 'Erreur lors de l\'ajout');
+        }
+      } catch (error) {
+        showAlert('danger', 'Erreur: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    });
+
+    async function supprimerAffectation(id) {
+      if (!confirm('Voulez-vous vraiment supprimer cette affectation ?')) return;
+      
+      try {
+        const response = await fetch(`/absences/plannings/affectations/${id}`, {
+          method: 'DELETE',
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showAlert('success', 'Affectation supprimée avec succès !');
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          throw new Error(result.error || 'Erreur lors de la suppression');
+        }
+      } catch (error) {
+        showAlert('danger', 'Erreur: ' + error.message);
+      }
+    }
+
+    async function publierPlanning(id) {
+      if (!confirm('Voulez-vous publier ce planning ? Il sera visible par tout le personnel.')) return;
+      
+      try {
+        const response = await fetch(`/absences/plannings/${id}/publier`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ validateur_id: 1 })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showAlert('success', 'Planning publié avec succès !');
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          throw new Error(result.error || 'Erreur lors de la publication');
+        }
+      } catch (error) {
+        showAlert('danger', 'Erreur: ' + error.message);
+      }
+    }
+
+    async function supprimerPlanning(id) {
+      if (!confirm('Voulez-vous vraiment annuler ce planning ? Cette action est irréversible.')) return;
+      
+      try {
+        const response = await fetch(`/absences/plannings/${id}`, {
+          method: 'DELETE',
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showAlert('success', 'Planning annulé avec succès !');
+          setTimeout(() => window.location.href = '/absences/plannings', 1500);
+        } else {
+          throw new Error(result.error || 'Erreur lors de l\'annulation');
+        }
+      } catch (error) {
+        showAlert('danger', 'Erreur: ' + error.message);
+      }
+    }
+
+    async function voirDetailsPersonnel(personnelId) {
+      const modal = new bootstrap.Modal(document.getElementById('detailsPersonnelModal'));
+      modal.show();
+      
+      document.getElementById('detailsPersonnelContent').innerHTML = `
+        <div class="text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Chargement...</span>
+          </div>
+        </div>
+      `;
+      
+      try {
+        const response = await fetch(`/personnel/api/${personnelId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const p = data.personnel;
+          document.getElementById('detailsPersonnelContent').innerHTML = `
+            <div class="row">
+              <div class="col-md-4 text-center mb-3">
+                <div class="personnel-avatar mx-auto" style="width: 120px; height: 120px; font-size: 3rem;">
+                  ${p.prenom[0]}${p.nom[0]}
+                </div>
+                <h4 class="mt-3">${p.prenom} ${p.nom}</h4>
+                <span class="badge bg-primary">${p.type_personnel}</span>
+              </div>
+              <div class="col-md-8">
+                <h6 class="border-bottom pb-2 mb-3">Informations Générales</h6>
+                <div class="row g-2 mb-3">
+                  <div class="col-6"><strong>Matricule:</strong></div>
+                  <div class="col-6">${p.matricule}</div>
+                  <div class="col-6"><strong>Email:</strong></div>
+                  <div class="col-6">${p.email || 'N/A'}</div>
+                  <div class="col-6"><strong>Téléphone:</strong></div>
+                  <div class="col-6">${p.telephone || 'N/A'}</div>
+                  <div class="col-6"><strong>Date embauche:</strong></div>
+                  <div class="col-6">${new Date(p.date_embauche).toLocaleDateString('fr-FR')}</div>
+                  <div class="col-6"><strong>Statut:</strong></div>
+                  <div class="col-6">
+                    <span class="badge bg-${p.statut === 'Actif' ? 'success' : 'danger'}">${p.statut}</span>
+                  </div>
+                </div>
+                ${p.adresse ? `
+                <h6 class="border-bottom pb-2 mb-2">Adresse</h6>
+                <p class="text-muted">${p.adresse}</p>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        } else {
+          throw new Error(data.message || 'Personnel non trouvé');
+        }
+      } catch (error) {
+        document.getElementById('detailsPersonnelContent').innerHTML = `
+          <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle"></i> 
+            Erreur lors du chargement des détails: ${error.message}
+          </div>
+        `;
+      }
+    }
+
+    function showAlert(type, message) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+      alertDiv.style.zIndex = '9999';
+      alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.body.appendChild(alertDiv);
+      
+      setTimeout(() => {
+        alertDiv.remove();
+      }, 5000);
+    }
+
+    document.getElementById('ajouterAffectationModal').addEventListener('hidden.bs.modal', function () {
+      document.getElementById('ajouterAffectationForm').reset();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!-- views/rh/competences/form.ejs -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= competence ? 'Modifier' : 'Nouvelle' %> Compétence - Lab Manager</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body>
+  <div class="d-flex">
+    <%- include('../../partials/sidebar') %>
+    
+    <div class="main-content" style="margin-left: 260px; width: calc(100% - 260px);">
+      
+      
+      <div class="container-fluid p-4">
+        <!-- En-tête -->
+        <div class="mb-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h2>
+                <i class="bi bi-star text-warning"></i> 
+                <%= competence ? 'Modifier la Compétence' : 'Nouvelle Compétence' %>
+              </h2>
+              <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                  <li class="breadcrumb-item"><a href="/dashboard">Accueil</a></li>
+                  <li class="breadcrumb-item"><a href="/rh/dashboard">RH</a></li>
+                  <li class="breadcrumb-item"><a href="/rh/competences">Compétences</a></li>
+                  <li class="breadcrumb-item active"><%= competence ? 'Modifier' : 'Nouvelle' %></li>
+                </ol>
+              </nav>
+            </div>
+            <a href="/rh/competences" class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-left"></i> Retour
+            </a>
+          </div>
+        </div>
+
+        <!-- Formulaire -->
+        <div class="row">
+          <div class="col-lg-8 mx-auto">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                  <i class="bi bi-file-earmark-text"></i> 
+                  Informations de la Compétence
+                </h5>
+              </div>
+              <div class="card-body">
+                <form action="<%= competence ? `/rh/competences/${competence.id}/edit` : '/rh/competences/nouveau' %>" 
+                      method="POST" id="competenceForm">
+                  
+                  <!-- Code et Nom -->
+                  <div class="row mb-3">
+                    <div class="col-md-4">
+                      <label for="code" class="form-label">
+                        Code <span class="text-danger">*</span>
+                      </label>
+                      <input type="text" 
+                             class="form-control" 
+                             id="code" 
+                             name="code" 
+                             value="<%= competence ? competence.code : '' %>"
+                             placeholder="Ex: COMP-001"
+                             required>
+                      <small class="text-muted">Code unique d'identification</small>
+                    </div>
+                    <div class="col-md-8">
+                      <label for="nom" class="form-label">
+                        Nom de la compétence <span class="text-danger">*</span>
+                      </label>
+                      <input type="text" 
+                             class="form-control" 
+                             id="nom" 
+                             name="nom" 
+                             value="<%= competence ? competence.nom : '' %>"
+                             placeholder="Ex: Microbiologie avancée"
+                             required>
+                    </div>
+                  </div>
+
+                  <!-- Catégorie -->
+                  <div class="mb-3">
+                    <label for="categorie" class="form-label">
+                      Catégorie <span class="text-danger">*</span>
+                    </label>
+                    <% if (categories && categories.length > 0) { %>
+                    <div class="input-group">
+                      <input type="text" 
+                             class="form-control" 
+                             id="categorie" 
+                             name="categorie" 
+                             list="categoriesList"
+                             value="<%= competence ? competence.categorie : '' %>"
+                             placeholder="Choisir ou créer une catégorie"
+                             required>
+                      <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#categoriesModal">
+                        <i class="bi bi-list"></i> Voir les catégories
+                      </button>
+                    </div>
+                    <datalist id="categoriesList">
+                      <% categories.forEach(cat => { %>
+                      <option value="<%= cat %>"><%= cat %></option>
+                      <% }) %>
+                    </datalist>
+                    <% } else { %>
+                    <input type="text" 
+                           class="form-control" 
+                           id="categorie" 
+                           name="categorie" 
+                           value="<%= competence ? competence.categorie : '' %>"
+                           placeholder="Ex: Technique, Réglementaire, Informatique"
+                           required>
+                    <% } %>
+                    <small class="text-muted">
+                      Exemples: Technique, Réglementaire, Qualité, Sécurité, Informatique, Management
+                    </small>
+                  </div>
+
+                  <!-- Description -->
+                  <div class="mb-4">
+                    <label for="description" class="form-label">
+                      Description détaillée
+                    </label>
+                    <textarea class="form-control" 
+                              id="description" 
+                              name="description" 
+                              rows="5"
+                              placeholder="Décrivez la compétence, son importance, les connaissances requises..."><%= competence ? (competence.description || '') : '' %></textarea>
+                    <small class="text-muted">
+                      Précisez les savoirs, savoir-faire et savoir-être associés à cette compétence
+                    </small>
+                  </div>
+
+                  <!-- Suggestions de catégories -->
+                  <div class="alert alert-info mb-4">
+                    <h6 class="alert-heading"><i class="bi bi-lightbulb"></i> Suggestions de catégories</h6>
+                    <div class="row g-2">
+                      <div class="col-md-4">
+                        <strong>Techniques:</strong>
+                        <ul class="small mb-0">
+                          <li>Microbiologie</li>
+                          <li>Biochimie</li>
+                          <li>Hématologie</li>
+                          <li>Immunologie</li>
+                        </ul>
+                      </div>
+                      <div class="col-md-4">
+                        <strong>Transversales:</strong>
+                        <ul class="small mb-0">
+                          <li>Qualité</li>
+                          <li>Sécurité</li>
+                          <li>Réglementaire</li>
+                          <li>Management</li>
+                        </ul>
+                      </div>
+                      <div class="col-md-4">
+                        <strong>Outils:</strong>
+                        <ul class="small mb-0">
+                          <li>Informatique</li>
+                          <li>Équipements</li>
+                          <li>Logiciels</li>
+                          <li>Documentation</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Boutons d'action -->
+                  <div class="d-flex justify-content-between">
+                    <a href="/rh/competences" class="btn btn-light">
+                      <i class="bi bi-x-circle"></i> Annuler
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                      <i class="bi bi-<%= competence ? 'check' : 'plus' %>-circle"></i> 
+                      <%= competence ? 'Enregistrer les modifications' : 'Créer la compétence' %>
+                    </button>
+                  </div>
+
+                </form>
+              </div>
+            </div>
+
+            <!-- Informations complémentaires pour modification -->
+            <% if (competence) { %>
+            <div class="card border-0 shadow-sm mt-3">
+              <div class="card-body">
+                <h6 class="text-muted">Informations</h6>
+                <small class="text-muted">
+                  <i class="bi bi-calendar"></i> Créée le: <%= new Date(competence.created_at).toLocaleDateString('fr-FR') %>
+                  à <%= new Date(competence.created_at).toLocaleTimeString('fr-FR') %>
+                </small>
+              </div>
+            </div>
+            <% } %>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Liste des catégories -->
+  <% if (categories && categories.length > 0) { %>
+  <div class="modal fade" id="categoriesModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-bookmarks"></i> Catégories existantes</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="list-group">
+            <% categories.forEach(cat => { %>
+            <button type="button" 
+                    class="list-group-item list-group-item-action" 
+                    onclick="selectCategorie('<%= cat %>')">
+              <i class="bi bi-tag"></i> <%= cat %>
+            </button>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Validation du formulaire
+    document.getElementById('competenceForm').addEventListener('submit', function(e) {
+      const code = document.getElementById('code').value.trim();
+      const nom = document.getElementById('nom').value.trim();
+      const categorie = document.getElementById('categorie').value.trim();
+
+      if (!code || !nom || !categorie) {
+        e.preventDefault();
+        alert('Veuillez remplir tous les champs obligatoires (*)');
+        return false;
+      }
+
+      // Validation du format du code
+      if (!/^[A-Z0-9-]+$/i.test(code)) {
+        e.preventDefault();
+        alert('Le code ne doit contenir que des lettres, chiffres et tirets');
+        document.getElementById('code').focus();
+        return false;
+      }
+    });
+
+    // Sélectionner une catégorie depuis le modal
+    function selectCategorie(categorie) {
+      document.getElementById('categorie').value = categorie;
+      const modal = bootstrap.Modal.getInstance(document.getElementById('categoriesModal'));
+      modal.hide();
+    }
+
+    // Auto-complétion du code basé sur le nom
+    document.getElementById('nom').addEventListener('blur', function() {
+      const code = document.getElementById('code');
+      if (!code.value && this.value) {
+        // Générer un code automatique basé sur le nom
+        const autoCode = 'COMP-' + this.value
+          .substring(0, 3)
+          .toUpperCase()
+          .replace(/[^A-Z]/g, '');
+        code.value = autoCode;
+      }
+    });
+  </script>
+</body>
+</html>

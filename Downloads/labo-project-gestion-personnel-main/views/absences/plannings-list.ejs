@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Liste des Plannings</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --sidebar-width: 250px;
+    }
+    
+    .main-content {
+      margin-left: var(--sidebar-width);
+      padding: 30px;
+      min-height: 100vh;
+      background-color: #f8f9fa;
+    }
+    
+    .planning-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+      border-left: 4px solid;
+      margin-bottom: 1rem;
+    }
+    
+    .planning-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .planning-garde-nuit {
+      border-left-color: #2c3e50;
+    }
+    
+    .planning-rotation {
+      border-left-color: #3498db;
+    }
+    
+    .planning-special {
+      border-left-color: #e74c3c;
+    }
+    
+    .badge-status {
+      font-size: 0.85rem;
+      padding: 0.4rem 0.8rem;
+    }
+    
+    .stats-box {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 10px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    
+    .filter-card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+  </style>
+</head>
+<body>
+  <%- include('../partials/sidebar') %>
+  
+  <div class="main-content">
+    <div class="container-fluid">
+      <!-- En-tête -->
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h2><i class="bi bi-calendar3"></i> Gestion des Plannings</h2>
+              <p class="text-muted">Planification des rotations, gardes et affectations</p>
+            </div>
+            <div>
+              <a href="/absences/garde-nuit" class="btn btn-dark">
+                <i class="bi bi-moon-stars"></i> Garde de Nuit
+              </a>
+              <a href="/absences/plannings/add" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Nouveau Planning
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistiques rapides -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="stats-box">
+            <h3><%= plannings.length %></h3>
+            <small>Total Plannings</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stats-box" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <h3><%= plannings.filter(p => p.statut === 'Brouillon').length %></h3>
+            <small>En Brouillon</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stats-box" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <h3><%= plannings.filter(p => p.statut === 'Publié').length %></h3>
+            <small>Publiés</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stats-box" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+            <h3><%= plannings.reduce((sum, p) => sum + (p.nb_affectations || 0), 0) %></h3>
+            <small>Total Affectations</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtres -->
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="card filter-card">
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <input type="text" id="searchInput" class="form-control" placeholder="🔍 Rechercher un planning...">
+                </div>
+                <div class="col-md-3">
+                  <select id="filterType" class="form-select">
+                    <option value="">Tous les types</option>
+                    <option value="Garde de nuit">Garde de nuit</option>
+                    <option value="Rotation">Rotation</option>
+                    <option value="Spécial">Spécial</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <select id="filterStatut" class="form-select">
+                    <option value="">Tous les statuts</option>
+                    <option value="Brouillon">Brouillon</option>
+                    <option value="Publié">Publié</option>
+                    <option value="Annulé">Annulé</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <button class="btn btn-secondary w-100" onclick="resetFilters()">
+                    <i class="bi bi-arrow-clockwise"></i> Réinitialiser
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Liste des plannings -->
+      <div id="planningsList">
+        <% if (plannings.length === 0) { %>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> Aucun planning créé. Commencez par créer votre premier planning.
+        </div>
+        <% } else { %>
+        <% plannings.forEach(planning => { 
+          const dateDebut = new Date(planning.date_debut);
+          const dateFin = new Date(planning.date_fin);
+          
+          let cardClass = 'planning-rotation';
+          let iconClass = 'bi-calendar-week';
+          if (planning.type_planning === 'Garde de nuit') {
+            cardClass = 'planning-garde-nuit';
+            iconClass = 'bi-moon-stars';
+          } else if (planning.type_planning === 'Spécial') {
+            cardClass = 'planning-special';
+            iconClass = 'bi-star-fill';
+          }
+          
+          let statutBadge = 'secondary';
+          if (planning.statut === 'Publié') statutBadge = 'success';
+          if (planning.statut === 'Brouillon') statutBadge = 'warning';
+          if (planning.statut === 'Annulé') statutBadge = 'danger';
+        %>
+        <div class="card planning-card <%= cardClass %>" 
+             data-titre="<%= planning.titre %>" 
+             data-type="<%= planning.type_planning %>"
+             data-statut="<%= planning.statut %>">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col-md-5">
+                <div class="d-flex align-items-start">
+                  <div class="me-3 fs-2">
+                    <i class="bi <%= iconClass %>"></i>
+                  </div>
+                  <div>
+                    <h5 class="mb-1">
+                      <%= planning.titre %>
+                      <span class="badge badge-status bg-<%= statutBadge %>"><%= planning.statut %></span>
+                    </h5>
+                    <small class="text-muted">
+                      <i class="bi bi-tag"></i> <%= planning.reference %>
+                    </small>
+                    <br>
+                    <small class="text-muted">
+                      <i class="bi bi-person"></i> <%= planning.createur_nom %>
+                    </small>
+                    <% if (planning.departement_nom) { %>
+                    <br>
+                    <small class="text-muted">
+                      <i class="bi bi-building"></i> <%= planning.departement_nom %>
+                    </small>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-3">
+                <div class="mb-2">
+                  <small class="text-muted d-block">Type de planning</small>
+                  <strong><%= planning.type_planning %></strong>
+                </div>
+                <div>
+                  <small class="text-muted d-block">Période</small>
+                  <strong>
+                    <%= dateDebut.toLocaleDateString('fr-FR') %> 
+                    <i class="bi bi-arrow-right"></i> 
+                    <%= dateFin.toLocaleDateString('fr-FR') %>
+                  </strong>
+                </div>
+              </div>
+              
+              <div class="col-md-2 text-center">
+                <div class="bg-light rounded p-3">
+                  <h3 class="mb-0"><%= planning.nb_affectations || 0 %></h3>
+                  <small class="text-muted">Affectations</small>
+                </div>
+              </div>
+              
+              <div class="col-md-2 text-end">
+                <div class="btn-group-vertical w-100">
+                  <a href="/absences/plannings/<%= planning.id %>" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-eye"></i> Voir détails
+                  </a>
+                  <% if (planning.statut === 'Brouillon') { %>
+                  <button class="btn btn-sm btn-outline-success" onclick="publierPlanning(<%= planning.id %>)">
+                    <i class="bi bi-check-circle"></i> Publier
+                  </button>
+                  <% } %>
+                  <% if (planning.statut !== 'Annulé') { %>
+                  <button class="btn btn-sm btn-outline-danger" onclick="annulerPlanning(<%= planning.id %>)">
+                    <i class="bi bi-x-circle"></i> Annuler
+                  </button>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+            
+            <% if (planning.description) { %>
+            <div class="row mt-3">
+              <div class="col-md-12">
+                <div class="alert alert-light mb-0">
+                  <small><%= planning.description %></small>
+                </div>
+              </div>
+            </div>
+            <% } %>
+          </div>
+        </div>
+        <% }); %>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Filtrage
+    const searchInput = document.getElementById('searchInput');
+    const filterType = document.getElementById('filterType');
+    const filterStatut = document.getElementById('filterStatut');
+    const cards = document.querySelectorAll('.planning-card');
+
+    function applyFilters() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const typeValue = filterType.value;
+      const statutValue = filterStatut.value;
+
+      cards.forEach(card => {
+        const titre = card.dataset.titre.toLowerCase();
+        const type = card.dataset.type;
+        const statut = card.dataset.statut;
+
+        let showCard = true;
+
+        if (searchTerm && !titre.includes(searchTerm)) {
+          showCard = false;
+        }
+
+        if (typeValue && type !== typeValue) {
+          showCard = false;
+        }
+
+        if (statutValue && statut !== statutValue) {
+          showCard = false;
+        }
+
+        card.style.display = showCard ? 'block' : 'none';
+      });
+    }
+
+    searchInput.addEventListener('input', applyFilters);
+    filterType.addEventListener('change', applyFilters);
+    filterStatut.addEventListener('change', applyFilters);
+
+    function resetFilters() {
+      searchInput.value = '';
+      filterType.value = '';
+      filterStatut.value = '';
+      applyFilters();
+    }
+
+    // Publier planning
+    async function publierPlanning(id) {
+      if (!confirm('Voulez-vous publier ce planning ?')) return;
+      
+      try {
+        const response = await fetch(`/absences/plannings/${id}/publier`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            validateur_id: 1 // À remplacer par l'ID de l'utilisateur connecté
+          })
+        });
+
+        if (response.ok) {
+          alert('Planning publié avec succès !');
+          location.reload();
+        } else {
+          alert('Erreur lors de la publication');
+        }
+      } catch (error) {
+        alert('Erreur: ' + error.message);
+      }
+    }
+
+    // Annuler planning
+    async function annulerPlanning(id) {
+      if (!confirm('Voulez-vous annuler ce planning ?')) return;
+      
+      try {
+        const response = await fetch(`/absences/plannings/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          alert('Planning annulé avec succès !');
+          location.reload();
+        } else {
+          alert('Erreur lors de l\'annulation');
+        }
+      } catch (error) {
+        alert('Erreur: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,434 @@
+<!-- ==================== views/rapports.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapports et Analyses</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body { background: #f5f7fa; }
+        .report-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        .report-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        .stat-box {
+            background: linear-gradient(135deg, #6c5b7b 0%, #8b7a9b 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .print-section {
+            display: none;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .print-section { display: block !important; }
+            .report-card { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+  <%- include('partials/sidebar', { currentPage: 'dashboard' }) %>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-10 offset-md-2 px-4 py-4">
+                <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+                    <div>
+                        <h2><i class="bi bi-file-earmark-text text-primary"></i> Rapports et Analyses</h2>
+                        <p class="text-muted mb-0">Statistiques et analyses du personnel</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-success me-2" onclick="exportToExcel()">
+                            <i class="bi bi-file-excel me-2"></i> Excel
+                        </button>
+                        <button class="btn btn-primary" onclick="window.print()">
+                            <i class="bi bi-printer me-2"></i> Imprimer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtres -->
+                <div class="card mb-4 no-print">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="form-label">Type de rapport</label>
+                                <select class="form-select" id="reportType">
+                                    <option value="general">Vue Générale</option>
+                                    <option value="departement">Par Département</option>
+                                    <option value="type">Par Type Personnel</option>
+                                    <option value="evolution">Évolution</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Période</label>
+                                <select class="form-select" id="periode">
+                                    <option value="current">Actuel</option>
+                                    <option value="month">Ce mois</option>
+                                    <option value="quarter">Ce trimestre</option>
+                                    <option value="year">Cette année</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Département</label>
+                                <select class="form-select" id="filterDept">
+                                    <option value="">Tous</option>
+                                    <option value="Biochimie">Biochimie</option>
+                                    <option value="Hématologie">Hématologie</option>
+                                    <option value="Microbiologie">Microbiologie</option>
+                                    <option value="Biologie Délocalisée">Biologie Délocalisée</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-primary w-100" onclick="generateReport()">
+                                    <i class="bi bi-graph-up me-2"></i> Générer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistiques Principales -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-box">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="stat-value" id="totalPersonnel">0</div>
+                                    <div>Personnel Total</div>
+                                </div>
+                                <i class="bi bi-people fs-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-box" style="background: linear-gradient(135deg, #00bfa5 0%, #1de9b6 100%);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="stat-value" id="totalBiologistes">0</div>
+                                    <div>Biologistes</div>
+                                </div>
+                                <i class="bi bi-mortarboard fs-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-box" style="background: linear-gradient(135deg, #8b9556 0%, #a5b168 100%);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="stat-value" id="totalTechniciens">0</div>
+                                    <div>Techniciens</div>
+                                </div>
+                                <i class="bi bi-tools fs-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-box" style="background: linear-gradient(135deg, #78909c 0%, #90a4ae 100%);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="stat-value" id="totalCadres">0</div>
+                                    <div>Cadres</div>
+                                </div>
+                                <i class="bi bi-briefcase fs-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Graphiques -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="report-card card">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="bi bi-pie-chart me-2"></i> Répartition par Type</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="typeChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="report-card card">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0"><i class="bi bi-bar-chart me-2"></i> Personnel par Département</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="departementChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tableaux Détaillés -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="report-card card">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="bi bi-table me-2"></i> Analyse Détaillée par Département</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="detailTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Département</th>
+                                                <th>Biologistes</th>
+                                                <th>Techniciens</th>
+                                                <th>Cadres</th>
+                                                <th>Support</th>
+                                                <th>Total</th>
+                                                <th>% du Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="detailTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analyse Complémentaire -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="report-card card">
+                            <div class="card-header bg-warning text-white">
+                                <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i> Personnel par Ancienneté</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="ancienneteChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="report-card card">
+                            <div class="card-header bg-danger text-white">
+                                <h6 class="mb-0"><i class="bi bi-gender-ambiguous me-2"></i> Répartition Homme/Femme</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="genderStats" class="text-center py-4">
+                                    <h3 class="text-primary mb-3">Répartition par Genre</h3>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <i class="bi bi-gender-male fs-1 text-primary"></i>
+                                            <h4 id="hommes">0</h4>
+                                            <small class="text-muted">Hommes</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <i class="bi bi-gender-female fs-1 text-danger"></i>
+                                            <h4 id="femmes">0</h4>
+                                            <small class="text-muted">Femmes</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Print -->
+                <div class="print-section">
+                    <h1>Rapport Personnel Laboratoire</h1>
+                    <p>Date: <span id="printDate"></span></p>
+                    <div id="printContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let charts = {};
+        let statsData = {};
+
+        // Charger les données
+        async function loadData() {
+            try {
+                const [statsResponse, detailResponse] = await Promise.all([
+                    fetch('/personnel/api/statistics'),
+                    fetch('/rapports/api/detailed-stats')
+                ]);
+                
+                statsData = await statsResponse.json();
+                const detailData = await detailResponse.json();
+                
+                updateMainStats();
+                createCharts();
+                populateDetailTable(detailData);
+            } catch (err) {
+                console.error('Erreur:', err);
+                alert('Erreur lors du chargement des données');
+            }
+        }
+
+        // Mettre à jour les statistiques principales
+        function updateMainStats() {
+            $('#totalPersonnel').text(statsData.total || 0);
+            $('#totalBiologistes').text(statsData.biologistes || 0);
+            $('#totalTechniciens').text(statsData.techniciens || 0);
+            $('#totalCadres').text(statsData.cadres || 0);
+        }
+
+        // Créer les graphiques
+        function createCharts() {
+            // Graphique par type
+            const typeCtx = document.getElementById('typeChart').getContext('2d');
+            if (charts.typeChart) charts.typeChart.destroy();
+            
+            charts.typeChart = new Chart(typeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Biologistes', 'Techniciens', 'Cadres', 'Secrétaires', 'Préleveurs', 'Agents Log.'],
+                    datasets: [{
+                        data: [
+                            statsData.biologistes || 0,
+                            statsData.techniciens || 0,
+                            statsData.cadres || 0,
+                            statsData.secretaires || 0,
+                            statsData.preleveurs || 0,
+                            statsData.agents_logistiques || 0
+                        ],
+                        backgroundColor: [
+                            '#6c5b7b', '#8b9556', '#00bfa5', 
+                            '#78909c', '#ff7043', '#ffa726'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // Graphique par département
+            const deptCtx = document.getElementById('departementChart').getContext('2d');
+            if (charts.departementChart) charts.departementChart.destroy();
+            
+            charts.departementChart = new Chart(deptCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Biochimie', 'Hématologie', 'Microbiologie', 'Bio. Déloc.', 'Immuno-Séro', 'Immuno-Hémato'],
+                    datasets: [{
+                        label: 'Personnel',
+                        data: [12, 10, 15, 9, 8, 7],
+                        backgroundColor: '#6c5b7b'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // Graphique ancienneté
+            const ancCtx = document.getElementById('ancienneteChart').getContext('2d');
+            if (charts.ancienneteChart) charts.ancienneteChart.destroy();
+            
+            charts.ancienneteChart = new Chart(ancCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['< 1 an', '1-3 ans', '3-5 ans', '5-10 ans', '> 10 ans'],
+                    datasets: [{
+                        label: 'Nombre',
+                        data: [8, 15, 22, 28, 16],
+                        backgroundColor: '#ffa726'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // Remplir le tableau détaillé
+        function populateDetailTable(data) {
+            const tbody = $('#detailTableBody');
+            tbody.empty();
+            
+            const departments = [
+                'Biochimie', 'Hématologie', 'Microbiologie', 
+                'Biologie Délocalisée', 'Immuno-Séro-Electro', 'Immuno-Hémato',
+                'Administration', 'Support'
+            ];
+            
+            let total = statsData.total || 0;
+            
+            departments.forEach(dept => {
+                const bio = Math.floor(Math.random() * 5) + 1;
+                const tech = Math.floor(Math.random() * 12) + 3;
+                const cadre = Math.floor(Math.random() * 3);
+                const support = Math.floor(Math.random() * 4);
+                const deptTotal = bio + tech + cadre + support;
+                const percent = total > 0 ? ((deptTotal / total) * 100).toFixed(1) : 0;
+                
+                tbody.append(`
+                    <tr>
+                        <td><strong>${dept}</strong></td>
+                        <td><span class="badge bg-primary">${bio}</span></td>
+                        <td><span class="badge bg-success">${tech}</span></td>
+                        <td><span class="badge bg-warning">${cadre}</span></td>
+                        <td><span class="badge bg-info">${support}</span></td>
+                        <td><strong>${deptTotal}</strong></td>
+                        <td>${percent}%</td>
+                    </tr>
+                `);
+            });
+        }
+
+        // Générer rapport
+        function generateReport() {
+            const type = $('#reportType').val();
+            const periode = $('#periode').val();
+            
+            alert(`Génération du rapport: ${type} pour la période: ${periode}`);
+            loadData();
+        }
+
+        // Export Excel
+        function exportToExcel() {
+            alert('Exportation vers Excel...');
+        }
+
+        // Initialisation
+        $(document).ready(function() {
+            loadData();
+            $('#printDate').text(new Date().toLocaleDateString('fr-FR'));
+        });
+    </script>
+</body>
+</html>

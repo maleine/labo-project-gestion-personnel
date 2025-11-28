@@ -1,0 +1,158 @@
+<!-- ==================== views/rh/habilitations-list.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Habilitations</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+       <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    
+    <div class="main-content">
+        <div class="container-fluid px-4 py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-award"></i> Gestion des Habilitations</h2>
+                <a href="/rh/habilitations/add" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i> Ajouter Habilitation
+                </a>
+            </div>
+
+            <!-- Alertes Habilitations à renouveler -->
+            <% if (aRenouveler.length > 0) { %>
+            <div class="alert alert-warning alert-dismissible fade show">
+                <h5><i class="bi bi-exclamation-triangle"></i> Habilitations à renouveler</h5>
+                <p><strong><%= aRenouveler.length %></strong> habilitations expirent dans les 90 prochains jours</p>
+                <ul class="mb-0">
+                    <% aRenouveler.slice(0, 5).forEach(hab => { %>
+                    <li>
+                        <%= hab.personnel_nom %> - <%= hab.type_habilitation %> 
+                        (expire dans <%= hab.jours_restants %> jours)
+                    </li>
+                    <% }); %>
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <% } %>
+
+            <!-- Tableau des habilitations -->
+            <div class="card">
+                <div class="card-body">
+                    <table id="habilitationsTable" class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Personnel</th>
+                                <th>Type</th>
+                                <th>Type Habilitation</th>
+                                <th>Code</th>
+                                <th>Niveau</th>
+                                <th>Date Obtention</th>
+                                <th>Date Expiration</th>
+                                <th>Jours Restants</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% habilitations.forEach(hab => { 
+                                let urgenceClass = '';
+                                if (hab.jours_restants !== null) {
+                                    if (hab.jours_restants < 0) urgenceClass = 'table-danger';
+                                    else if (hab.jours_restants < 30) urgenceClass = 'table-danger';
+                                    else if (hab.jours_restants < 90) urgenceClass = 'table-warning';
+                                }
+                            %>
+                            <tr class="<%= urgenceClass %>">
+                                <td><strong><%= hab.personnel_nom %></strong></td>
+                                <td><%= hab.type_personnel %></td>
+                                <td><%= hab.type_habilitation %></td>
+                                <td><%= hab.code_habilitation || '-' %></td>
+                                <td>
+                                    <% if (hab.niveau) { %>
+                                    <span class="badge bg-info"><%= hab.niveau %></span>
+                                    <% } %>
+                                </td>
+                                <td><%= new Date(hab.date_obtention).toLocaleDateString('fr-FR') %></td>
+                                <td>
+                                    <% if (hab.date_expiration) { %>
+                                        <%= new Date(hab.date_expiration).toLocaleDateString('fr-FR') %>
+                                    <% } else { %>
+                                        <span class="text-muted">Pas d'expiration</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (hab.jours_restants !== null) { %>
+                                        <% if (hab.jours_restants < 0) { %>
+                                            <span class="badge bg-danger">Expirée</span>
+                                        <% } else { %>
+                                            <%= hab.jours_restants %> jours
+                                        <% } %>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<%= hab.statut === 'Active' ? 'success' : hab.statut === 'Expirée' ? 'danger' : 'secondary' %>">
+                                        <%= hab.statut %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" onclick="viewDetails(<%= hab.id %>)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <% if (hab.jours_restants !== null && hab.jours_restants < 90) { %>
+                                    <button class="btn btn-sm btn-warning" onclick="renouveler(<%= hab.id %>)">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                    </button>
+                                    <% } %>
+                                </td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#habilitationsTable').DataTable({
+                order: [[7, 'asc']],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
+                }
+            });
+        });
+
+        function viewDetails(id) {
+            alert('Afficher détails habilitation ' + id);
+        }
+
+        function renouveler(id) {
+            if(confirm('Renouveler cette habilitation?')) {
+                window.location.href = '/rh/habilitations/renouveler/' + id;
+            }
+        }
+    </script>
+</body>
+</html>

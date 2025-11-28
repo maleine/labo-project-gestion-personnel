@@ -1,0 +1,594 @@
+<!-- ==================== views/organigramme.ejs - Version Complète Interactive ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organigramme Interactif</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #f5f7fa; }
+        
+        .org-chart {
+            padding: 20px;
+            overflow-x: auto;
+        }
+        
+        .org-level {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .org-node {
+            background: white;
+            border: 3px solid #6c5b7b;
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 220px;
+            max-width: 280px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .org-node:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            border-color: #8b7a9b;
+        }
+        
+        .org-node.dcgs {
+            background: linear-gradient(135deg, #6c5b7b 0%, #8b7a9b 100%);
+            color: white;
+            border: none;
+            font-size: 1.2rem;
+            padding: 30px;
+        }
+        
+        .org-node.biologiste {
+            background: linear-gradient(135deg, #9a88ab 0%, #b8a8c8 100%);
+            color: white;
+            border-color: #6c5b7b;
+        }
+        
+        .org-node.cadre {
+            background: linear-gradient(135deg, #00bfa5 0%, #1de9b6 100%);
+            color: white;
+            border-color: #00a38f;
+        }
+        
+        .org-node.technicien {
+            background: linear-gradient(135deg, #8b9556 0%, #a5b168 100%);
+            color: white;
+            border-color: #7a8347;
+        }
+        
+        .org-node.support {
+            background: linear-gradient(135deg, #78909c 0%, #90a4ae 100%);
+            color: white;
+            border-color: #607d8b;
+        }
+        
+        .badge-count {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            background: #ff5252;
+            color: white;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .org-connector {
+            width: 3px;
+            height: 40px;
+            background: linear-gradient(to bottom, #6c5b7b, #ddd);
+            margin: 0 auto;
+        }
+        
+        .department-section {
+            border: 3px dashed #e0e0e0;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+        }
+        
+        .department-title {
+            background: white;
+            border: 2px solid #6c5b7b;
+            border-radius: 10px;
+            padding: 15px 30px;
+            display: inline-block;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .org-node h6, .org-node h5 {
+            margin: 0 0 8px 0;
+            font-weight: bold;
+        }
+        
+        .org-node small {
+            opacity: 0.95;
+            display: block;
+            margin-top: 5px;
+        }
+        
+        .person-info {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .person-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin: 5px 0;
+        }
+        
+        .person-contact {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+        
+        @media print {
+            .no-print { display: none !important; }
+            .org-node { break-inside: avoid; page-break-inside: avoid; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+ <%- include('partials/sidebar', { currentPage: 'dashboard' }) %>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-10 offset-md-2 px-4 py-4">
+                <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+                    <div>
+                        <h2><i class="bi bi-diagram-3 text-primary"></i> Organigramme Interactif</h2>
+                        <p class="text-muted mb-0">Structure hiérarchique du laboratoire</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-primary me-2" onclick="toggleNames()">
+                            <i class="bi bi-eye me-2"></i> <span id="toggleText">Afficher Noms</span>
+                        </button>
+                        <button class="btn btn-success me-2" onclick="exportOrgChart()">
+                            <i class="bi bi-download me-2"></i> Export
+                        </button>
+                        <button class="btn btn-primary" onclick="window.print()">
+                            <i class="bi bi-printer me-2"></i> Imprimer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Direction Générale -->
+                <div class="text-center mb-4">
+                    <div class="org-node dcgs d-inline-block" onclick="showDetails('dcgs')">
+                        <i class="bi bi-building fs-1 mb-2"></i>
+                        <h4 class="mb-1">DCGS</h4>
+                        <small>Direction Contrôle & Gestion Sanitaire</small>
+                        <div class="person-info d-none" id="dcgs-info">
+                            <div class="person-name">Dr. Mohamed DIOP</div>
+                            <div class="person-contact">m.diop@dcgs.sn</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="org-connector"></div>
+
+                <!-- Niveau Direction/Responsables -->
+                <div class="department-section">
+                    <div class="text-center">
+                        <div class="department-title">
+                            <h5 class="mb-0"><i class="bi bi-shield-check text-primary me-2"></i>Direction et Responsabilités Transversales</h5>
+                        </div>
+                    </div>
+                    <div class="org-level">
+                        <div class="org-node biologiste" onclick="showNodeDetails('biologiste-chef')">
+                            <i class="bi bi-mortarboard fs-2"></i>
+                            <h6 class="mt-2">Biologiste Responsable</h6>
+                            <small>Chef de Service</small>
+                            <span class="badge-count" id="bio-chef-count">1</span>
+                            <div class="person-info d-none" data-names="true">
+                                <div class="person-name">Dr. Aïcha NDIAYE</div>
+                                <div class="person-contact">a.ndiaye@lab.sn</div>
+                            </div>
+                        </div>
+                        
+                        <div class="org-node cadre" onclick="showNodeDetails('resp-qualite')">
+                            <i class="bi bi-shield-check fs-2"></i>
+                            <h6 class="mt-2">Resp. Assurance Qualité</h6>
+                            <small>Contrôle & Normes</small>
+                            <span class="badge-count" id="qualite-count">1</span>
+                            <div class="person-info d-none" data-names="true">
+                                <div class="person-name">Fatou SARR</div>
+                                <div class="person-contact">f.sarr@lab.sn</div>
+                            </div>
+                        </div>
+                        
+                        <div class="org-node cadre" onclick="showNodeDetails('resp-metrologie')">
+                            <i class="bi bi-calculator fs-2"></i>
+                            <h6 class="mt-2">Resp. Métrologie</h6>
+                            <small>Gestion Équipements</small>
+                            <span class="badge-count" id="metrologie-count">1</span>
+                            <div class="person-info d-none" data-names="true">
+                                <div class="person-name">Ibrahima FALL</div>
+                                <div class="person-contact">i.fall@lab.sn</div>
+                            </div>
+                        </div>
+                        
+                        <div class="org-node cadre" onclick="showNodeDetails('resp-info')">
+                            <i class="bi bi-laptop fs-2"></i>
+                            <h6 class="mt-2">Resp. Informatique</h6>
+                            <small>Système Information</small>
+                            <span class="badge-count" id="info-count">1</span>
+                            <div class="person-info d-none" data-names="true">
+                                <div class="person-name">Moussa SECK</div>
+                                <div class="person-contact">m.seck@lab.sn</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="org-connector"></div>
+
+                <!-- Départements Biologistes -->
+                <div class="department-section">
+                    <div class="text-center">
+                        <div class="department-title">
+                            <h5 class="mb-0"><i class="bi bi-diagram-3 text-primary me-2"></i>Départements Techniques - BIOLOGISTES</h5>
+                        </div>
+                    </div>
+                    <div class="org-level">
+                        <div class="org-node biologiste" onclick="filterPersonnel('Biologiste', 'Biologie Délocalisée')">
+                            <i class="bi bi-lightning-charge fs-2"></i>
+                            <h6 class="mt-2">Biologie Délocalisée</h6>
+                            <small>Analyses d'urgence - POCT</small>
+                            <span class="badge-count">3</span>
+                        </div>
+                        
+                        <div class="org-node biologiste" onclick="filterPersonnel('Biologiste', 'Biochimie')">
+                            <i class="bi bi-droplet fs-2"></i>
+                            <h6 class="mt-2">Biochimie</h6>
+                            <small>Analyses biochimiques</small>
+                            <span class="badge-count">4</span>
+                        </div>
+                        
+                        <div class="org-node biologiste" onclick="filterPersonnel('Biologiste', 'Hématologie Hémostase')">
+                            <i class="bi bi-heart-pulse fs-2"></i>
+                            <h6 class="mt-2">Hématologie Hémostase</h6>
+                            <small>Analyses sanguines</small>
+                            <span class="badge-count">3</span>
+                        </div>
+                        
+                        <div class="org-node biologiste" onclick="filterPersonnel('Biologiste', 'Microbiologie')">
+                            <i class="bi bi-virus fs-2"></i>
+                            <h6 class="mt-2">Microbiologie</h6>
+                            <small>Bactériologie - Parasitologie</small>
+                            <span class="badge-count">5</span>
+                        </div>
+                        
+                        <div class="org-node biologiste" onclick="filterPersonnel('Biologiste', 'Immuno-Séro-Electro')">
+                            <i class="bi bi-shield-plus fs-2"></i>
+                            <h6 class="mt-2">Immuno-Séro-Electro</h6>
+                            <small>Sérologie & Immunologie</small>
+                            <span class="badge-count">4</span>
+                        </div>
+                        
+                        <div class="org-node biologiste" onclick="filterPersonnel('Biologiste', 'Immuno-Hémato')">
+                            <i class="bi bi-droplet-half fs-2"></i>
+                            <h6 class="mt-2">Immuno-Hémato</h6>
+                            <small>Immunohématologie</small>
+                            <span class="badge-count">4</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Départements Techniciens -->
+                <div class="department-section">
+                    <div class="text-center">
+                        <div class="department-title">
+                            <h5 class="mb-0"><i class="bi bi-tools text-success me-2"></i>Personnel Technique - TECHNICIENS</h5>
+                        </div>
+                    </div>
+                    <div class="org-level">
+                        <div class="org-node technicien" onclick="filterPersonnel('Technicien', 'Biochimie')">
+                            <i class="bi bi-gear fs-2"></i>
+                            <h6 class="mt-2">Tech. Biochimie</h6>
+                            <small>8 techniciens</small>
+                            <span class="badge-count">8</span>
+                        </div>
+                        
+                        <div class="org-node technicien" onclick="filterPersonnel('Technicien', 'Hématologie')">
+                            <i class="bi bi-gear-fill fs-2"></i>
+                            <h6 class="mt-2">Tech. Hématologie</h6>
+                            <small>7 techniciens</small>
+                            <span class="badge-count">7</span>
+                        </div>
+                        
+                        <div class="org-node technicien" onclick="filterPersonnel('Technicien', 'Microbiologie')">
+                            <i class="bi bi-microscope fs-2"></i>
+                            <h6 class="mt-2">Tech. Microbiologie</h6>
+                            <small>10 techniciens</small>
+                            <span class="badge-count">10</span>
+                        </div>
+                        
+                        <div class="org-node technicien" onclick="filterPersonnel('Technicien', 'Biologie Délocalisée')">
+                            <i class="bi bi-speedometer fs-2"></i>
+                            <h6 class="mt-2">Tech. Bio. Déloc.</h6>
+                            <small>6 techniciens</small>
+                            <span class="badge-count">6</span>
+                        </div>
+                    </div>
+                    
+                    <div class="org-level justify-content-center mt-4">
+                        <div class="org-node technicien" onclick="filterPersonnel('Technicien', 'Garde de Nuit', true)">
+                            <i class="bi bi-moon-stars fs-2"></i>
+                            <h6 class="mt-2">Garde de Nuit</h6>
+                            <small>Personnel de permanence 24/7</small>
+                            <span class="badge-count">8</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personnel Support -->
+                <div class="department-section">
+                    <div class="text-center">
+                        <div class="department-title">
+                            <h5 class="mb-0"><i class="bi bi-people text-info me-2"></i>Personnel de Support</h5>
+                        </div>
+                    </div>
+                    <div class="org-level">
+                        <div class="org-node support" onclick="filterPersonnel('Secrétaire')">
+                            <i class="bi bi-person-workspace fs-2"></i>
+                            <h6 class="mt-2">Secrétaires</h6>
+                            <small>Administration & Accueil</small>
+                            <span class="badge-count">4</span>
+                        </div>
+                        
+                        <div class="org-node support" onclick="filterPersonnel('Préleveur')">
+                            <i class="bi bi-heart-half fs-2"></i>
+                            <h6 class="mt-2">Préleveurs</h6>
+                            <small>Prélèvements sanguins</small>
+                            <span class="badge-count">6</span>
+                        </div>
+                        
+                        <div class="org-node support" onclick="filterPersonnel('Agent Logistique')">
+                            <i class="bi bi-box-seam fs-2"></i>
+                            <h6 class="mt-2">Agents Logistiques</h6>
+                            <small>Logistique & Support</small>
+                            <span class="badge-count">5</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Légende et Statistiques -->
+                <div class="card mt-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informations et Légende</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Catégories de Personnel</h6>
+                                <div class="d-flex flex-column gap-2">
+                                    <div>
+                                        <span class="badge biologiste p-2 me-2">■</span> 
+                                        <strong>Biologistes</strong> - <span id="total-bio">24</span> personnes
+                                    </div>
+                                    <div>
+                                        <span class="badge cadre p-2 me-2">■</span> 
+                                        <strong>Cadres</strong> - <span id="total-cadre">8</span> personnes
+                                    </div>
+                                    <div>
+                                        <span class="badge technicien p-2 me-2">■</span> 
+                                        <strong>Techniciens</strong> - <span id="total-tech">42</span> personnes
+                                    </div>
+                                    <div>
+                                        <span class="badge support p-2 me-2">■</span> 
+                                        <strong>Support</strong> - <span id="total-support">15</span> personnes
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Statistiques Globales</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td><strong>Total Personnel:</strong></td>
+                                            <td class="text-end"><span class="badge bg-primary" id="total-personnel">89</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Départements:</strong></td>
+                                            <td class="text-end"><span class="badge bg-success">8</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Équipes:</strong></td>
+                                            <td class="text-end"><span class="badge bg-info" id="total-equipes">0</span></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <p class="mb-0 text-muted">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Navigation:</strong> Cliquez sur les nœuds pour voir le personnel correspondant. 
+                            Les badges rouges indiquent le nombre de personnes dans chaque catégorie.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Détails Personnel -->
+    <div class="modal fade" id="personnelModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalTitle">Personnel</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let showNames = false;
+        let orgData = {};
+
+        // Charger les données de l'organigramme
+        async function loadOrgData() {
+            try {
+                const response = await fetch('/organigramme/api/data');
+                orgData = await response.json();
+                updateCounts();
+            } catch (err) {
+                console.error('Erreur chargement:', err);
+            }
+        }
+
+        // Mettre à jour les compteurs
+        function updateCounts() {
+            if (orgData.personnelParDept) {
+                // Compter par type
+                let bio = 0, tech = 0, cadre = 0, support = 0;
+                orgData.personnelParDept.forEach(p => {
+                    if (p.type_personnel === 'Biologiste') bio += p.nombre;
+                    else if (p.type_personnel === 'Technicien') tech += p.nombre;
+                    else if (p.type_personnel === 'Cadre') cadre += p.nombre;
+                    else support += p.nombre;
+                });
+                
+                $('#total-bio').text(bio);
+                $('#total-tech').text(tech);
+                $('#total-cadre').text(cadre);
+                $('#total-support').text(support);
+                $('#total-personnel').text(bio + tech + cadre + support);
+            }
+            
+            if (orgData.equipes) {
+                $('#total-equipes').text(orgData.equipes.length);
+            }
+        }
+
+        // Toggle affichage noms
+        function toggleNames() {
+            showNames = !showNames;
+            const elements = document.querySelectorAll('[data-names="true"]');
+            elements.forEach(el => {
+                if (showNames) {
+                    el.classList.remove('d-none');
+                } else {
+                    el.classList.add('d-none');
+                }
+            });
+            $('#toggleText').text(showNames ? 'Masquer Noms' : 'Afficher Noms');
+        }
+
+        // Filtrer et afficher le personnel
+        async function filterPersonnel(type, departement = null, posteNuit = false) {
+            try {
+                const response = await fetch('/personnel/api/list');
+                const data = await response.json();
+                
+                let filtered = data.data.filter(p => {
+                    let match = p.type_personnel === type;
+                    if (departement && p.departement) {
+                        match = match && p.departement.includes(departement);
+                    }
+                    if (posteNuit) {
+                        match = match && p.poste_nuit === true;
+                    }
+                    return match;
+                });
+                
+                displayPersonnelModal(filtered, type, departement);
+            } catch (err) {
+                alert('Erreur lors du chargement');
+            }
+        }
+
+        // Afficher modal avec personnel
+        function displayPersonnelModal(personnel, type, dept) {
+            const title = dept ? `${type} - ${dept}` : type;
+            $('#modalTitle').html(`<i class="bi bi-people me-2"></i>${title} (${personnel.length})`);
+            
+            let html = '<div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr>';
+            html += '<th>Matricule</th><th>Nom Complet</th><th>Email</th><th>Téléphone</th><th>Date Embauche</th><th>Actions</th></tr></thead><tbody>';
+            
+            personnel.forEach(p => {
+                html += `<tr>
+                    <td><span class="badge bg-secondary">${p.matricule}</span></td>
+                    <td><strong>${p.prenom} ${p.nom}</strong></td>
+                    <td><small>${p.email}</small></td>
+                    <td><small>${p.telephone || 'N/A'}</small></td>
+                    <td>${new Date(p.date_embauche).toLocaleDateString('fr-FR')}</td>
+                    <td>
+                        <a href="/personnel/edit/${p.id}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table></div>';
+            
+            if (personnel.length === 0) {
+                html = '<div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Aucun personnel dans cette catégorie</div>';
+            }
+            
+            $('#modalContent').html(html);
+            $('#personnelModal').modal('show');
+        }
+
+        // Afficher détails nœud
+        function showNodeDetails(nodeId) {
+            console.log('Détails du nœud:', nodeId);
+        }
+
+        // Export organigramme
+        function exportOrgChart() {
+            alert('Export de l\'organigramme...');
+        }
+
+        // Afficher détails DCGS
+        function showDetails(type) {
+            if (type === 'dcgs') {
+                const info = document.getElementById('dcgs-info');
+                info.classList.toggle('d-none');
+            }
+        }
+
+        // Initialisation
+        $(document).ready(function() {
+            loadOrgData();
+        });
+    </script>
+</body>
+</html>

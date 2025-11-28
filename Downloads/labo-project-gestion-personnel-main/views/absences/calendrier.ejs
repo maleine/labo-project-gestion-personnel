@@ -1,0 +1,117 @@
+<!-- ==================== views/absences/calendrier.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendrier des Absences</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.css" rel="stylesheet">
+    <style>
+        .fc-event {
+            border: none !important;
+            border-radius: 3px;
+            padding: 2px 5px;
+            font-size: 0.85rem;
+        }
+    </style>
+    <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+   <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    
+    <div class="main-content">
+        <div class="container-fluid px-4 py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-calendar-event"></i> Calendrier des Absences</h2>
+                <div>
+                    <a href="/absences/demandes/add" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i> Nouvelle Demande
+                    </a>
+                    <a href="/absences/demandes" class="btn btn-outline-primary">
+                        <i class="bi bi-list"></i> Liste Demandes
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div id="calendar"></div>
+                </div>
+            </div>
+
+            <!-- Légende -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6>Légende</h6>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div><span class="badge" style="background:#27ae60">■</span> Congé Payé</div>
+                        <div><span class="badge" style="background:#e74c3c">■</span> Congé Maladie</div>
+                        <div><span class="badge" style="background:#3498db">■</span> Formation</div>
+                        <div><span class="badge" style="background:#e91e63">■</span> Maternité</div>
+                        <div><span class="badge" style="background:#f39c12">■</span> Arrêt Maladie</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/locales/fr.global.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('calendar');
+            
+            const events = [
+                <% absences.forEach(function(abs) { %>
+                {
+                    title: '<%= abs.personnel_nom %> - <%= abs.type_absence %>',
+                    start: '<%= abs.date_debut.toISOString().split('T')[0] %>',
+                    end: '<%= abs.date_fin.toISOString().split('T')[0] %>',
+                    backgroundColor: '<%= abs.couleur %>',
+                    borderColor: '<%= abs.couleur %>',
+                    extendedProps: {
+                        nbJours: '<%= abs.nb_jours %>',
+                        statut: '<%= abs.statut %>'
+                    }
+                },
+                <% }); %>
+            ];
+            
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'fr',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listWeek'
+                },
+                events: events,
+                eventClick: function(info) {
+                    alert(
+                        info.event.title + 
+                        '\nDurée: ' + info.event.extendedProps.nbJours + ' jour(s)' +
+                        '\nStatut: ' + info.event.extendedProps.statut
+                    );
+                },
+                height: 'auto'
+            });
+            
+            calendar.render();
+        });
+    </script>
+</body>
+</html>

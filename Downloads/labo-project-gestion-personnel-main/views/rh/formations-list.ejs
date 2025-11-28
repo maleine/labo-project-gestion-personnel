@@ -1,0 +1,138 @@
+<!-- ==================== views/rh/formations-list.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Formations</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+     <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+      <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    
+    <div class="main-content">
+        <div class="container-fluid px-4 py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-mortarboard"></i> Gestion des Formations</h2>
+                <div>
+                    <a href="/rh/besoins-formation" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-clipboard-check"></i> Besoins
+                    </a>
+                    <a href="/rh/formations/add" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i> Nouvelle Formation
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filtres -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <select class="form-select" id="filterType">
+                                <option value="">Tous les types</option>
+                                <option value="Intégration">Intégration</option>
+                                <option value="Continue">Formation Continue</option>
+                                <option value="Habilitation">Habilitation</option>
+                                <option value="Perfectionnement">Perfectionnement</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="filterStatut">
+                                <option value="">Tous les statuts</option>
+                                <option value="Planifiée">Planifiée</option>
+                                <option value="En cours">En cours</option>
+                                <option value="Terminée">Terminée</option>
+                                <option value="Annulée">Annulée</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liste des formations -->
+            <div class="row g-4">
+                <% formations.forEach(formation => { 
+                    const statutClass = {
+                        'Planifiée': 'primary',
+                        'En cours': 'success',
+                        'Terminée': 'secondary',
+                        'Annulée': 'danger'
+                    };
+                %>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-header bg-<%= statutClass[formation.statut] || 'primary' %> text-white">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-0"><%= formation.titre %></h6>
+                                    <small><%= formation.reference %></small>
+                                </div>
+                                <span class="badge bg-light text-dark"><%= formation.type_formation %></span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <% if (formation.organisme) { %>
+                            <p class="mb-2"><i class="bi bi-building"></i> <%= formation.organisme %></p>
+                            <% } %>
+                            
+                            <% if (formation.date_debut) { %>
+                            <p class="mb-2">
+                                <i class="bi bi-calendar"></i>
+                                <%= new Date(formation.date_debut).toLocaleDateString('fr-FR') %>
+                                <% if (formation.date_fin) { %>
+                                    → <%= new Date(formation.date_fin).toLocaleDateString('fr-FR') %>
+                                <% } %>
+                            </p>
+                            <% } %>
+                            
+                            <% if (formation.duree_heures) { %>
+                            <p class="mb-2"><i class="bi bi-clock"></i> <%= formation.duree_heures %>h</p>
+                            <% } %>
+                            
+                            <% if (formation.lieu) { %>
+                            <p class="mb-2"><i class="bi bi-geo-alt"></i> <%= formation.lieu %></p>
+                            <% } %>
+                            
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <i class="bi bi-people"></i>
+                                        <strong><%= formation.nb_inscrits || 0 %></strong> inscrits
+                                    </span>
+                                    <span>
+                                        <i class="bi bi-check-circle text-success"></i>
+                                        <strong><%= formation.nb_valides || 0 %></strong> validés
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light">
+                            <a href="/rh/formations/<%= formation.id %>" class="btn btn-sm btn-primary w-100">
+                                <i class="bi bi-eye"></i> Détails & Participants
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <% }); %>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
