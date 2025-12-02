@@ -16,7 +16,12 @@ router.get('/calendrier', async (req, res) => {
     
     const absences = await Absence.getCalendrierMois(mois, annee);
     
-    res.render('absences/calendrier', { absences, mois, annee });
+    res.render('absences/calendrier', { 
+      absences, 
+      mois, 
+      annee,
+      currentPage: 'calendrier'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -26,7 +31,10 @@ router.get('/calendrier', async (req, res) => {
 router.get('/demandes', async (req, res) => {
   try {
     const demandes = await Absence.getAll(req.query);
-    res.render('absences/demandes-list', { demandes });
+    res.render('absences/demandes-list', { 
+      demandes,
+      currentPage: 'demandes'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -58,7 +66,12 @@ router.get('/demandes/add', async (req, res) => {
   try {
     const personnel = await Personnel.getAll();
     const typesAbsences = await Absence.getTypesAbsences();
-    res.render('absences/demandes-form', { personnel, typesAbsences, demande: null });
+    res.render('absences/demandes-form', { 
+      personnel, 
+      typesAbsences, 
+      demande: null,
+      currentPage: 'demandes'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -95,7 +108,10 @@ router.get('/soldes', async (req, res) => {
     const pool = await getConnection();
     const result = await pool.request()
       .query('SELECT * FROM vw_SoldesCongesActuels ORDER BY personnel_nom');
-    res.render('absences/soldes', { soldes: result.recordset });
+    res.render('absences/soldes', { 
+      soldes: result.recordset,
+      currentPage: 'soldes'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -107,7 +123,10 @@ router.get('/soldes', async (req, res) => {
 router.get('/plannings', async (req, res) => {
   try {
     const plannings = await Planning.getAll(req.query.type);
-    res.render('absences/plannings-list', { plannings });
+    res.render('absences/plannings-list', { 
+      plannings,
+      currentPage: 'plannings'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -121,7 +140,8 @@ router.get('/plannings/add', async (req, res) => {
       .query('SELECT * FROM Departements WHERE statut = \'Actif\'');
     res.render('absences/plannings-form', { 
       planning: null, 
-      departements: departements.recordset 
+      departements: departements.recordset,
+      currentPage: 'plannings'
     });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
@@ -144,7 +164,12 @@ router.get('/plannings/:id', async (req, res) => {
     const planning = await Planning.getById(req.params.id);
     const affectations = await Planning.getAffectations(req.params.id);
     const personnel = await Personnel.getAll();
-    res.render('absences/plannings-details', { planning, affectations, personnel });
+    res.render('absences/plannings-details', { 
+      planning, 
+      affectations, 
+      personnel,
+      currentPage: 'plannings'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -174,7 +199,10 @@ router.delete('/plannings/affectations/:id', async (req, res) => {
 router.get('/garde-nuit', async (req, res) => {
   try {
     const gardes = await Planning.getGardeNuitSemaine();
-    res.render('absences/garde-nuit', { gardes });
+    res.render('absences/garde-nuit', { 
+      gardes,
+      currentPage: 'garde-nuit'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -213,7 +241,10 @@ router.get('/dashboard', async (req, res) => {
         (SELECT AVG(solde_restant) FROM SoldesConges WHERE annee = YEAR(GETDATE())) as solde_moyen
     `);
     
-    res.render('absences/dashboard', { stats: stats.recordset[0] });
+    res.render('absences/dashboard', { 
+      stats: stats.recordset[0],
+      currentPage: 'absences-dashboard'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }

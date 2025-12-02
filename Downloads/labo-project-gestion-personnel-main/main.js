@@ -1,16 +1,17 @@
-// ==================== main.js / app.js avec Contrôle d'Accès ====================
+// ==================== main.js / app.js avec Module Présence ====================
 
 const { app, BrowserWindow } = require('electron');
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const bodyParser = require('body-parser');
+const cron = require('node-cron');
 const { getConnection } = require('./database/config');
 const { injectPermissions, checkModuleAccess } = require('./middleware/accessControl');
 
 // ==================== EXPRESS SERVER ====================
 const server = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // Configuration Express & EJS
 server.set('view engine', 'ejs');
@@ -58,6 +59,7 @@ const rhRoutes = require('./routes/rh');
 const absencesRoutes = require('./routes/absences');
 const exportsRoutes = require('./routes/exports');
 const rapportsRoutes = require('./routes/rapports');
+const presenceRoutes = require('./routes/presence');
 const { requireAuth } = require('./routes/auth');
 
 // Routes publiques
@@ -72,6 +74,7 @@ server.use('/rh', requireAuth, checkModuleAccess('rh'), rhRoutes);
 server.use('/absences', requireAuth, checkModuleAccess('absences'), absencesRoutes);
 server.use('/exports', requireAuth, checkModuleAccess('exports'), exportsRoutes);
 server.use('/rapports', requireAuth, checkModuleAccess('rapports'), rapportsRoutes);
+server.use('/presence', requireAuth, checkModuleAccess('presence'), presenceRoutes);
 
 // Dashboard route
 server.use('/dashboard', requireAuth, checkModuleAccess('dashboard'), dashboardRoutes);
@@ -86,6 +89,39 @@ server.get('/', (req, res) => {
     res.redirect('/auth/login');
   }
 });
+
+// ==================== SYNCHRONISATION AUTOMATIQUE ZKTECO ====================
+// Synchronisation toutes les 30 minutes, de 6h à 20h (lundi à vendredi)
+cron.schedule('*/30 6-20 * * 1-5', async () => {
+  console.log('🔄 Synchronisation automatique ZKTeco...');
+  try {
+    const pool = await getConnection();
+    const result = await pool.request()
+      .query('SELECT * FROM AppareilsPointage WHERE statut = \'Actif\'');
+    
+    if (result.recordset.length === 0) {
+      console.log('⚠️  Aucun appareil actif configuré');
+      return;
+    }
+
+    const ZKTecoService = require('./utils/zktecoService');
+    
+    for (const appareil of result.recordset) {
+      try {
+        console.log(`📡 Synchronisation appareil: ${appareil.nom} (${appareil.adresse_ip})`);
+        const zkService = new ZKTecoService(appareil.adresse_ip, appareil.port);
+        const stats = await zkService.syncAttendances(appareil.id);
+        console.log(`✅ Synchro OK: ${stats.nouveaux} nouveaux, ${stats.total} total`);
+      } catch (err) {
+        console.error(`❌ Erreur appareil ${appareil.nom}:`, err.message);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Erreur synchronisation automatique:', error.message);
+  }
+});
+
+console.log('⏰ Tâche cron configurée: Synchro ZKTeco toutes les 30min (6h-20h, lun-ven)');
 
 // ==================== GESTION DES ERREURS ====================
 server.use((req, res) => {
@@ -162,7 +198,7 @@ app.whenReady().then(async () => {
   const dbConnected = await checkDatabaseConnection();
 
   server.listen(PORT, () => {
-    console.log(`Server Express: http://localhost:${PORT} - DB: ${dbConnected ? '✅ Connectée' : '❌ Déconnectée'}`);
+    console.log(`🚀 Server Express: http://localhost:${PORT} - DB: ${dbConnected ? '✅ Connectée' : '❌ Déconnectée'}`);
     createWindow();
   });
 
@@ -178,7 +214,7 @@ app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(
   });
 });
 
-process.on('uncaughtException', err => console.error('UNCAUGHT EXCEPTION:', err.stack));
-process.on('unhandledRejection', (reason) => console.error('UNHANDLED REJECTION:', reason));
+process.on('uncaughtException', err => console.error('⚠️  UNCAUGHT EXCEPTION:', err.stack));
+process.on('unhandledRejection', (reason) => console.error('⚠️  UNHANDLED REJECTION:', reason));
 
 module.exports = { server, mainWindow };

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planning Garde de Nuit</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+   <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    
+   <%
+   // Fonction pour formater l'heure en HH:mm
+   function formatTime(timeValue) {
+     if (!timeValue) return null;
+     
+     try {
+       const date = new Date(timeValue);
+       const hours = String(date.getHours()).padStart(2, '0');
+       const minutes = String(date.getMinutes()).padStart(2, '0');
+       return `${hours}:${minutes}`;
+     } catch (e) {
+       return null;
+     }
+   }
+   %>
+    
+    <div class="main-content">
+        <div class="container-fluid px-4 py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-moon-stars"></i> Planning Garde de Nuit</h2>
+                <a href="/absences/plannings" class="btn btn-primary">
+                    <i class="bi bi-calendar-plus"></i> Gérer Plannings
+                </a>
+            </div>
+
+            <!-- Vue Semaine -->
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Garde de Nuit - Semaine en Cours</h5>
+                </div>
+                <div class="card-body">
+                    <% if (gardes.length === 0) { %>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Aucune garde planifiée pour la semaine
+                    </div>
+                    <% } else { %>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Horaires</th>
+                                    <th>Personnel</th>
+                                    <th>Poste</th>
+                                    <th>Contact</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% gardes.forEach(garde => { 
+                                    const dateObj = new Date(garde.date);
+                                    const jourSemaine = dateObj.toLocaleDateString('fr-FR', { weekday: 'long' });
+                                    const heureDebut = formatTime(garde.heure_debut);
+                                    const heureFin = formatTime(garde.heure_fin);
+                                %>
+                                <tr>
+                                    <td>
+                                        <strong class="text-capitalize"><%= jourSemaine %></strong><br>
+                                        <small class="text-muted"><%= dateObj.toLocaleDateString('fr-FR') %></small>
+                                    </td>
+                                    <td>
+                                        <% if (heureDebut && heureFin) { %>
+                                            <span class="badge bg-info">
+                                                <i class="bi bi-clock"></i>
+                                                <%= heureDebut %> - <%= heureFin %>
+                                            </span>
+                                        <% } else { %>
+                                            <span class="text-muted">Non spécifié</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <strong><%= garde.personnel_nom %></strong>
+                                    </td>
+                                    <td>
+                                        <% if (garde.poste) { %>
+                                            <span class="badge bg-secondary"><%= garde.poste %></span>
+                                        <% } else { %>
+                                            <span class="text-muted">Garde Nuit</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            <i class="bi bi-telephone"></i> <%= garde.telephone || 'N/A' %><br>
+                                            <i class="bi bi-envelope"></i> <%= garde.email || 'N/A' %>
+                                        </small>
+                                    </td>
+                                </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Statistiques Équité -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-graph-up"></i>
+                                Équité des Gardes (Année en Cours)
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Nombre de gardes effectuées par technicien</p>
+                            <canvas id="chartGardes" height="60"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Graphique équité gardes
+        const ctx = document.getElementById('chartGardes');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Technicien 1', 'Technicien 2', 'Technicien 3', 'Technicien 4', 'Technicien 5'],
+                    datasets: [{
+                        label: 'Nombre de gardes',
+                        data: [8, 7, 9, 6, 8],
+                        backgroundColor: '#2c3e50',
+                        borderColor: '#34495e',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

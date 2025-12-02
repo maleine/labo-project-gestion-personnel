@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapping Employés - Lab Solutions</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .mapping-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+        }
+        
+        .mapping-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .employee-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid;
+            transition: all 0.3s;
+        }
+        
+        .employee-item.mapped {
+            border-left-color: #28a745;
+            background: rgba(40, 167, 69, 0.05);
+        }
+        
+        .employee-item.unmapped {
+            border-left-color: #dc3545;
+            background: rgba(220, 53, 69, 0.05);
+        }
+        
+        .employee-item:hover {
+            background: #e9ecef;
+            margin-left: 5px;
+        }
+        
+        .device-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sync-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-box {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .search-highlight {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+ <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/sidebar') %>
+    
+    <div class="main-content">
+   
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+           
+
+            <!-- Main Content -->
+          
+                <div class="page-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-2"><i class="bi bi-diagram-3"></i> Mapping Employés ↔ Machine ZKTeco</h2>
+                            <p class="text-muted mb-0">Associez les employés de votre base aux utilisateurs de la machine de pointage</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success" onclick="synchroniserMachine()">
+                                <i class="bi bi-arrow-repeat"></i> Synchroniser
+                            </button>
+                            <button class="btn btn-primary" onclick="autoMapping()">
+                                <i class="bi bi-magic"></i> Mapping Auto
+                            </button>
+                            <button class="btn btn-info" onclick="exporterMapping()">
+                                <i class="bi bi-download"></i> Exporter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Total Employés</div>
+                        <div class="stat-value text-primary"><%= stats.totalEmployes || 0 %></div>
+                        <small class="text-muted">dans la base</small>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Mappés</div>
+                        <div class="stat-value text-success"><%= stats.mappes || 0 %></div>
+                        <small class="text-muted"><%= stats.totalEmployes > 0 ? ((stats.mappes / stats.totalEmployes) * 100).toFixed(1) : 0 %>%</small>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Non Mappés</div>
+                        <div class="stat-value text-danger"><%= stats.nonMappes || 0 %></div>
+                        <small class="text-muted">à configurer</small>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Utilisateurs ZK</div>
+                        <div class="stat-value text-info"><%= stats.usersZK || 0 %></div>
+                        <small class="text-muted">sur la machine</small>
+                    </div>
+                </div>
+
+                <!-- Device Info -->
+                <div class="mapping-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-2"><i class="bi bi-hdd-network-fill"></i> Appareil ZKTeco Connecté</h5>
+                            <p class="mb-0 text-muted">
+                                <span class="device-badge">
+                                    <span class="sync-status bg-success"></span>
+                                    <%= device.model || 'ZK-F18' %> - <%= device.ip || '192.168.1.201' %>
+                                </span>
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <p class="mb-1"><strong>Dernière sync:</strong> <%= device.lastSync ? new Date(device.lastSync).toLocaleString('fr-FR') : 'Jamais' %></p>
+                            <p class="mb-0"><strong>Statut:</strong> <span class="badge bg-success">Connecté</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search & Filter -->
+                <div class="mapping-card">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" id="searchEmployee" 
+                                   placeholder="Rechercher un employé..." 
+                                   onkeyup="rechercherEmploye()">
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="filterStatus" onchange="filtrerEmployes()">
+                                <option value="tous">Tous les statuts</option>
+                                <option value="mapped">Mappés uniquement</option>
+                                <option value="unmapped">Non mappés uniquement</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="filterDept" onchange="filtrerEmployes()">
+                                <option value="tous">Tous les départements</option>
+                                <option value="analyses">Analyses</option>
+                                <option value="administration">Administration</option>
+                                <option value="prelevement">Prélèvement</option>
+                                <option value="technique">Technique</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+                                <i class="bi bi-x-circle"></i> Réinitialiser
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employee Mapping List -->
+                <div id="mappingList">
+                    <% if (employes && employes.length > 0) { %>
+                        <% employes.forEach(emp => { %>
+                        <div class="mapping-card employee-item <%= emp.zkUserId ? 'mapped' : 'unmapped' %>" 
+                             data-status="<%= emp.zkUserId ? 'mapped' : 'unmapped' %>"
+                             data-dept="<%= emp.departement %>"
+                             data-nom="<%= emp.nom.toLowerCase() %>">
+                            <div class="row align-items-center">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar bg-primary text-white d-flex align-items-center justify-content-center" 
+                                             style="width: 50px; height: 50px; border-radius: 50%; font-weight: 700;">
+                                            <%= emp.nom.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() %>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1"><%= emp.nom %></h6>
+                                            <small class="text-muted">
+                                                <i class="bi bi-person-badge"></i> <%= emp.matricule %> • 
+                                                <i class="bi bi-building"></i> <%= emp.departement %>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <% if (emp.zkUserId) { %>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                                            <div>
+                                                <strong>ID ZK: <%= emp.zkUserId %></strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    <% if (emp.zkUserName) { %>
+                                                        <%= emp.zkUserName %>
+                                                    <% } %>
+                                                </small>
+                                            </div>
+                                        </div>
+                                    <% } else { %>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-x-circle-fill text-danger fs-4"></i>
+                                            <div>
+                                                <strong class="text-danger">Non mappé</strong>
+                                                <br>
+                                                <small class="text-muted">Aucune association</small>
+                                            </div>
+                                        </div>
+                                    <% } %>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <% if (emp.lastPointage) { %>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock-history"></i> Dernier pointage:<br>
+                                            <strong><%= new Date(emp.lastPointage).toLocaleString('fr-FR') %></strong>
+                                        </small>
+                                    <% } else { %>
+                                        <small class="text-muted">Aucun pointage enregistré</small>
+                                    <% } %>
+                                </div>
+
+                                <div class="col-md-2 text-end">
+                                    <% if (emp.zkUserId) { %>
+                                        <button class="btn btn-sm btn-warning" onclick="modifierMapping('<%= emp.id %>')">
+                                            <i class="bi bi-pencil"></i> Modifier
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="supprimerMapping('<%= emp.id %>')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    <% } else { %>
+                                        <button class="btn btn-sm btn-success" onclick="creerMapping('<%= emp.id %>')">
+                                            <i class="bi bi-link-45deg"></i> Mapper
+                                        </button>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="mapping-card text-center py-5">
+                            <i class="bi bi-inbox display-1 text-muted"></i>
+                            <h5 class="text-muted mt-3">Aucun employé trouvé</h5>
+                            <p class="text-muted">Ajoutez des employés pour commencer le mapping</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Mapping -->
+    <div class="modal fade" id="mappingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-link-45deg"></i> Créer/Modifier Mapping</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="mappingForm">
+                        <input type="hidden" id="employeId" name="employeId">
+                        
+                        <div class="mb-4">
+                            <label class="form-label"><strong>Employé sélectionné</strong></label>
+                            <div class="alert alert-info">
+                                <h6 id="employeInfo" class="mb-0"></h6>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Utilisateur ZKTeco <span class="text-danger">*</span></label>
+                            <select class="form-select" id="zkUserId" name="zkUserId" required>
+                                <option value="">Sélectionner un utilisateur ZK</option>
+                                <% if (zkUsers && zkUsers.length > 0) { %>
+                                    <% zkUsers.forEach(user => { %>
+                                        <option value="<%= user.userId %>">
+                                            ID: <%= user.userId %> - <%= user.name || 'Sans nom' %> 
+                                            <% if (user.cardNo) { %>(Badge: <%= user.cardNo %>)<% } %>
+                                        </option>
+                                    <% }); %>
+                                <% } %>
+                            </select>
+                            <small class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i> Choisissez l'ID utilisateur correspondant sur la machine ZKTeco
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Méthode de vérification</label>
+                            <select class="form-select" id="verifyMode" name="verifyMode">
+                                <option value="1">Empreinte digitale</option>
+                                <option value="2">Mot de passe</option>
+                                <option value="3">Badge RFID</option>
+                                <option value="4">Visage</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Informations additionnelles..."></textarea>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> 
+                            <strong>Attention:</strong> Assurez-vous que l'ID ZKTeco correspond bien à l'employé pour éviter les erreurs de pointage.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="enregistrerMapping()">
+                        <i class="bi bi-save"></i> Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        const mappingModal = new bootstrap.Modal(document.getElementById('mappingModal'));
+
+        function rechercherEmploye() {
+            const search = document.getElementById('searchEmployee').value.toLowerCase();
+            const items = document.querySelectorAll('.employee-item');
+            
+            items.forEach(item => {
+                const nom = item.dataset.nom;
+                if (nom.includes(search)) {
+                    item.style.display = 'block';
+                    if (search.length > 0) {
+                        const nomElement = item.querySelector('h6');
+                        nomElement.innerHTML = nomElement.textContent.replace(
+                            new RegExp(search, 'gi'), 
+                            match => `<span class="search-highlight">${match}</span>`
+                        );
+                    }
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function filtrerEmployes() {
+            const statusFilter = document.getElementById('filterStatus').value;
+            const deptFilter = document.getElementById('filterDept').value;
+            const items = document.querySelectorAll('.employee-item');
+            
+            items.forEach(item => {
+                const status = item.dataset.status;
+                const dept = item.dataset.dept;
+                
+                const matchStatus = statusFilter === 'tous' || status === statusFilter;
+                const matchDept = deptFilter === 'tous' || dept === deptFilter;
+                
+                item.style.display = (matchStatus && matchDept) ? 'block' : 'none';
+            });
+        }
+
+        function resetFilters() {
+            document.getElementById('searchEmployee').value = '';
+            document.getElementById('filterStatus').value = 'tous';
+            document.getElementById('filterDept').value = 'tous';
+            
+            document.querySelectorAll('.employee-item').forEach(item => {
+                item.style.display = 'block';
+            });
+        }
+
+        function creerMapping(employeId) {
+            document.getElementById('employeId').value = employeId;
+            document.getElementById('mappingForm').reset();
+            
+            // Récupérer les infos de l'employé
+            fetch(`/api/employes/${employeId}`)
+                .then(res => res.json())
+                .then(emp => {
+                    document.getElementById('employeInfo').textContent = 
+                        `${emp.nom} - ${emp.matricule} - ${emp.departement}`;
+                    mappingModal.show();
+                });
+        }
+
+        function modifierMapping(employeId) {
+            fetch(`/api/mapping/${employeId}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('employeId').value = employeId;
+                    document.getElementById('employeInfo').textContent = 
+                        `${data.employe.nom} - ${data.employe.matricule}`;
+                    document.getElementById('zkUserId').value = data.zkUserId;
+                    document.getElementById('verifyMode').value = data.verifyMode || '1';
+                    document.getElementById('notes').value = data.notes || '';
+                    mappingModal.show();
+                });
+        }
+
+        function enregistrerMapping() {
+            const form = document.getElementById('mappingForm');
+            const formData = new FormData(form);
+            
+            fetch('/api/mapping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(formData))
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Mapping enregistré avec succès!');
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + data.message);
+                }
+            })
+            .catch(err => alert('Erreur: ' + err.message));
+        }
+
+        function supprimerMapping(employeId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce mapping ?')) {
+                fetch(`/api/mapping/${employeId}`, { method: 'DELETE' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Mapping supprimé');
+                            location.reload();
+                        }
+                    });
+            }
+        }
+
+        function synchroniserMachine() {
+            if (confirm('Synchroniser les utilisateurs depuis la machine ZKTeco ?')) {
+                const btn = event.target;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Synchronisation...';
+                
+                fetch('/api/zkteco/sync')
+                    .then(res => res.json())
+                    .then(data => {
+                        alert(`Synchronisation terminée! ${data.count} utilisateurs récupérés.`);
+                        location.reload();
+                    })
+                    .catch(err => {
+                        alert('Erreur de synchronisation: ' + err.message);
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Synchroniser';
+                    });
+            }
+        }
+
+        function autoMapping() {
+            if (confirm('Tenter un mapping automatique basé sur les noms ?')) {
+                fetch('/api/mapping/auto', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        alert(`Mapping automatique terminé!\n${data.success} employés mappés\n${data.failed} échecs`);
+                        location.reload();
+                    });
+            }
+        }
+
+        function exporterMapping() {
+            window.location.href = '/api/mapping/export';
+        }
+    </script>
+</body>
+</html>

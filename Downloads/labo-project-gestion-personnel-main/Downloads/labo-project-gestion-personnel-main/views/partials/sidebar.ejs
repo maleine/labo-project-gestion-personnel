@@ -1,0 +1,258 @@
+<!-- views/partials/sidebar.ejs -->
+<div class="sidebar bg-dark text-white" style="width: 260px; height: 100vh; position: fixed; left: 0; top: 0; overflow-y: auto; overflow-x: hidden;">
+  <div class="p-3 pb-5">
+    <!-- Logo et Titre -->
+    <div class="text-center mb-4 pb-3 border-bottom border-secondary">
+      <i class="bi bi-hospital fs-1 text-primary"></i>
+      <h5 class="mt-2 mb-0">Lab Personnel</h5>
+      <small class="text-white-50">Manager</small>
+    </div>
+
+    <!-- Profil utilisateur -->
+    <div class="user-profile mb-3 p-2 bg-secondary bg-opacity-25 rounded">
+      <div class="d-flex align-items-center">
+        <div class="avatar-circle bg-primary text-white me-2">
+          <%= (prenom ? prenom.charAt(0) : '') + (nom ? nom.charAt(0) : '') %>
+        </div>
+        <div class="flex-grow-1">
+          <div class="fw-bold" style="font-size: 0.85rem;"><%= prenom %> <%= nom %></div>
+          <small class="text-white-50" style="font-size: 0.7rem;"><%= type_personnel || 'Personnel' %></small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav flex-column">
+      
+      <!-- MODULE BASE -->
+      <% if (hasModuleAccess('dashboard') || hasModuleAccess('personnel') || hasModuleAccess('organigramme') || hasModuleAccess('equipes')) { %>
+      <div class="mb-3">
+        <small class="text-white-50 px-3 text-uppercase fw-bold" style="font-size: 0.75rem;">Module Base</small>
+      </div>
+
+      <% if (hasModuleAccess('dashboard')) { %>
+      <a class="nav-link text-white <%= currentPage === 'dashboard' ? 'active bg-primary' : '' %>" href="/dashboard">
+        <i class="bi bi-speedometer2 me-2"></i> Tableau de bord
+      </a>
+      <% } %>
+
+      <% if (hasModuleAccess('personnel')) { %>
+      <a class="nav-link text-white <%= currentPage === 'personnel' ? 'active bg-primary' : '' %>" href="/personnel/list">
+        <i class="bi bi-people me-2"></i> Personnel
+      </a>
+      <% } %>
+
+      <% if (hasModuleAccess('organigramme')) { %>
+      <a class="nav-link text-white <%= currentPage === 'organigramme' ? 'active bg-primary' : '' %>" href="/organigramme">
+        <i class="bi bi-diagram-3 me-2"></i> Organigramme
+      </a>
+      <% } %>
+
+      <% if (hasModuleAccess('equipes')) { %>
+      <a class="nav-link text-white <%= currentPage === 'equipes' ? 'active bg-primary' : '' %>" href="/equipes">
+        <i class="bi bi-people-fill me-2"></i> Équipes
+      </a>
+      <% } %>
+      
+      <hr class="my-3" style="border-color: rgba(255,255,255,0.2);">
+      <% } %>
+
+      <!-- MODULE RH -->
+      <% if (hasModuleAccess('rh')) { %>
+      <div class="mb-3">
+        <small class="text-white-50 px-3 text-uppercase fw-bold" style="font-size: 0.75rem;">Module RH ISO 15189</small>
+      </div>
+
+      <a class="nav-link text-white <%= currentPage === 'rh' && currentUrl.includes('/rh/dashboard') ? 'active bg-primary' : '' %>" href="/rh/dashboard">
+        <i class="bi bi-diagram-3 me-2"></i> Dashboard RH
+      </a>
+
+      <a class="nav-link text-white <%= currentPage === 'departements' ? 'active bg-primary' : '' %>" href="/rh/departements">
+        <i class="bi bi-building me-2"></i> Départements
+      </a>
+
+      <a class="nav-link text-white <%= currentPage === 'postes' ? 'active bg-primary' : '' %>" href="/rh/postes">
+        <i class="bi bi-briefcase me-2"></i> Postes & Fonctions
+      </a>
+
+      <% if (canManage) { %>
+      <a class="nav-link text-white <%= currentPage === 'recrutements' ? 'active bg-primary' : '' %>" href="/rh/recrutements">
+        <i class="bi bi-person-plus me-2"></i> Recrutements
+      </a>
+      <% } %>
+
+      <a class="nav-link text-white <%= currentPage === 'formations' ? 'active bg-primary' : '' %>" href="/rh/formations">
+        <i class="bi bi-mortarboard me-2"></i> Formations
+      </a>
+
+      <a class="nav-link text-white <%= currentPage === 'habilitations' ? 'active bg-primary' : '' %>" href="/rh/habilitations">
+        <i class="bi bi-award me-2"></i> Habilitations
+      </a>
+
+      <a class="nav-link text-white <%= currentPage === 'evaluations' ? 'active bg-primary' : '' %>" href="/rh/evaluations">
+        <i class="bi bi-clipboard-data me-2"></i> Évaluations
+      </a>
+
+      <a class="nav-link text-white <%= currentPage === 'competences' ? 'active bg-primary' : '' %>" href="/rh/competences">
+        <i class="bi bi-star me-2"></i> Compétences
+      </a>
+
+      <hr class="my-3" style="border-color: rgba(255,255,255,0.2);">
+      <% } %>
+
+      <!-- MODULE ABSENCES & PLANNING -->
+      <% if (hasModuleAccess('absences')) { %>
+      <div class="mb-3">
+        <small class="text-white-50 px-3 text-uppercase fw-bold" style="font-size: 0.75rem;">Absences & Planning</small>
+      </div>
+
+      <% if (canManage) { %>
+      <a class="nav-link text-white <%= currentPage === 'absences' && currentUrl.includes('/absences/dashboard') ? 'active bg-primary' : '' %>" href="/absences/dashboard">
+        <i class="bi bi-calendar-check me-2"></i> Dashboard Absences
+      </a>
+      <% } %>
+
+      <a class="nav-link text-white <%= currentPage === 'calendrier' ? 'active bg-primary' : '' %>" href="/absences/calendrier">
+        <i class="bi bi-calendar-event me-2"></i> Calendrier
+      </a>
+
+      <a class="nav-link text-white <%= currentPage === 'demandes' ? 'active bg-primary' : '' %>" href="/absences/demandes">
+        <i class="bi bi-file-earmark-text me-2"></i> Demandes Absence
+      </a>
+
+      <a class="nav-link text-white <%= currentPage === 'soldes' ? 'active bg-primary' : '' %>" href="/absences/soldes">
+        <i class="bi bi-wallet2 me-2"></i> Soldes Congés
+      </a>
+
+      <% if (canManage) { %>
+      <a class="nav-link text-white <%= currentPage === 'garde-nuit' ? 'active bg-primary' : '' %>" href="/absences/garde-nuit">
+        <i class="bi bi-moon-stars me-2"></i> Garde de Nuit
+      </a>
+
+      <a class="nav-link text-white <%= currentPage === 'plannings' ? 'active bg-primary' : '' %>" href="/absences/plannings">
+        <i class="bi bi-calendar3 me-2"></i> Tous les Plannings
+      </a>
+      <% } %>
+
+      <hr class="my-3" style="border-color: rgba(255,255,255,0.2);">
+      <% } %>
+
+      <!-- MODULE POINTAGE (pour Techniciens et Préleveurs) -->
+      <% if (hasModuleAccess('pointage')) { %>
+      <div class="mb-3">
+        <small class="text-white-50 px-3 text-uppercase fw-bold" style="font-size: 0.75rem;">Pointage</small>
+      </div>
+
+      <a class="nav-link text-white <%= currentPage === 'pointage' ? 'active bg-primary' : '' %>" href="/pointage">
+        <i class="bi bi-clock-history me-2"></i> Mon Pointage
+      </a>
+
+      <hr class="my-3" style="border-color: rgba(255,255,255,0.2);">
+      <% } %>
+
+      <!-- MODULE EXPORTS & RAPPORTS -->
+      <% if (hasModuleAccess('exports') || hasModuleAccess('rapports')) { %>
+      <div class="mb-3">
+        <small class="text-white-50 px-3 text-uppercase fw-bold" style="font-size: 0.75rem;">Exports & Rapports</small>
+      </div>
+
+      <% if (hasModuleAccess('exports')) { %>
+      <a class="nav-link text-white <%= currentPage === 'exports' ? 'active bg-primary' : '' %>" href="/exports">
+        <i class="bi bi-file-pdf me-2"></i> Exports PDF
+      </a>
+      <% } %>
+
+      <% if (hasModuleAccess('rapports')) { %>
+      <a class="nav-link text-white <%= currentPage === 'rapports' ? 'active bg-primary' : '' %>" href="/rapports">
+        <i class="bi bi-graph-up me-2"></i> Rapports Statistiques
+      </a>
+      <% } %>
+      <% } %>
+
+    </nav>
+
+    <!-- Footer Sidebar -->
+    <div class="mt-5 pt-4 border-top border-secondary">
+      <div class="text-center">
+        <a href="/auth/logout" class="btn btn-outline-light btn-sm w-100 mb-2">
+          <i class="bi bi-box-arrow-right me-1"></i> Déconnexion
+        </a>
+      </div>
+      <div class="text-center text-white-50 mt-3">
+        <small>Version 2.0</small><br>
+        <small>© 2024 Lab Manager</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .sidebar {
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar .nav-link {
+    padding: 0.75rem 1rem;
+    margin: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+  }
+
+  .sidebar .nav-link:hover {
+    background-color: rgba(13, 110, 253, 0.3) !important;
+    transform: translateX(5px);
+  }
+
+  .sidebar .nav-link.active {
+    background-color: #0d6efd !important;
+    font-weight: 500;
+  }
+
+  .sidebar .nav-link i {
+    width: 20px;
+    text-align: center;
+  }
+
+  .avatar-circle {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+  }
+
+  .user-profile {
+    border-left: 3px solid #0d6efd;
+  }
+
+  /* Scrollbar personnalisée pour webkit (Chrome, Safari, Edge) */
+  .sidebar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .sidebar::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+  }
+
+  .sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+  }
+
+  .sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.5);
+  }
+
+  /* Scrollbar pour Firefox */
+  .sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.3) rgba(255,255,255,0.05);
+  }
+</style>

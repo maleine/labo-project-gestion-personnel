@@ -1,0 +1,258 @@
+<!-- views/rh/competences/list.ejs -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion des Compétences - Lab Manager</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body>
+  <div class="d-flex">
+    <%- include('../../partials/sidebar') %>
+    
+    <div class="main-content" style="margin-left: 260px; width: calc(100% - 260px);">
+
+      
+      <div class="container-fluid p-4">
+        <!-- En-tête -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h2><i class="bi bi-star text-warning"></i> Gestion des Compétences</h2>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/dashboard">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="/rh/dashboard">RH</a></li>
+                <li class="breadcrumb-item active">Compétences</li>
+              </ol>
+            </nav>
+          </div>
+          <% if (canManage) { %>
+          <a href="/rh/competences/nouveau" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nouvelle Compétence
+          </a>
+          <% } %>
+        </div>
+
+        <!-- Messages -->
+        <% if (typeof success !== 'undefined') { %>
+        <div class="alert alert-success alert-dismissible fade show">
+          <%= success %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <% } %>
+
+        <!-- Statistiques -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded p-3">
+                      <i class="bi bi-star fs-3"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="text-muted mb-1">Total Compétences</h6>
+                    <h3 class="mb-0"><%= statistiques.total_competences || 0 %></h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="bg-success bg-opacity-10 text-success rounded p-3">
+                      <i class="bi bi-people fs-3"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="text-muted mb-1">Personnel Certifié</h6>
+                    <h3 class="mb-0"><%= statistiques.personnel_avec_competences || 0 %></h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="bg-info bg-opacity-10 text-info rounded p-3">
+                      <i class="bi bi-bookmarks fs-3"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="text-muted mb-1">Catégories</h6>
+                    <h3 class="mb-0"><%= statistiques.total_categories || 0 %></h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="bg-warning bg-opacity-10 text-warning rounded p-3">
+                      <i class="bi bi-graph-up fs-3"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="text-muted mb-1">Niveau Moyen</h6>
+                    <h3 class="mb-0"><%= (statistiques.niveau_moyen || 0).toFixed(1) %>/4</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Rechercher une compétence...">
+              </div>
+              <div class="col-md-3">
+                <select id="filterCategorie" class="form-select">
+                  <option value="">Toutes les catégories</option>
+                  <% categories.forEach(cat => { %>
+                  <option value="<%= cat %>"><%= cat %></option>
+                  <% }) %>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Liste des compétences groupées par catégorie -->
+        <% 
+        const grouped = {};
+        competences.forEach(comp => {
+          if (!grouped[comp.categorie]) grouped[comp.categorie] = [];
+          grouped[comp.categorie].push(comp);
+        });
+        %>
+
+        <% Object.keys(grouped).sort().forEach(categorie => { %>
+        <div class="card border-0 shadow-sm mb-4 competence-category" data-category="<%= categorie %>">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-bookmark"></i> <%= categorie %> (<%= grouped[categorie].length %>)</h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <% grouped[categorie].forEach(comp => { %>
+              <div class="col-md-6 col-lg-4 competence-item" data-name="<%= comp.nom.toLowerCase() %>" data-code="<%= comp.code.toLowerCase() %>">
+                <div class="card h-100 border">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <div class="flex-grow-1">
+                        <h6 class="card-title mb-1">
+                          <a href="/rh/competences/<%= comp.id %>" class="text-decoration-none">
+                            <%= comp.nom %>
+                          </a>
+                        </h6>
+                        <span class="badge bg-secondary"><%= comp.code %></span>
+                      </div>
+                      <% if (canManage) { %>
+                      <div class="dropdown">
+                        <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                          <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="/rh/competences/<%= comp.id %>">
+                            <i class="bi bi-eye"></i> Voir détails
+                          </a></li>
+                          <li><a class="dropdown-item" href="/rh/competences/<%= comp.id %>/edit">
+                            <i class="bi bi-pencil"></i> Modifier
+                          </a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item text-danger" href="#" onclick="deleteCompetence(<%= comp.id %>)">
+                            <i class="bi bi-trash"></i> Supprimer
+                          </a></li>
+                        </ul>
+                      </div>
+                      <% } %>
+                    </div>
+                    <% if (comp.description) { %>
+                    <p class="card-text small text-muted mb-0">
+                      <%= comp.description.substring(0, 80) %><%= comp.description.length > 80 ? '...' : '' %>
+                    </p>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Recherche et filtrage
+    const searchInput = document.getElementById('searchInput');
+    const filterCategorie = document.getElementById('filterCategorie');
+
+    function filterCompetences() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const selectedCategory = filterCategorie.value;
+
+      document.querySelectorAll('.competence-category').forEach(catCard => {
+        const category = catCard.dataset.category;
+        let categoryVisible = !selectedCategory || category === selectedCategory;
+        let hasVisibleItems = false;
+
+        catCard.querySelectorAll('.competence-item').forEach(item => {
+          const name = item.dataset.name;
+          const code = item.dataset.code;
+          const matchesSearch = !searchTerm || name.includes(searchTerm) || code.includes(searchTerm);
+
+          if (categoryVisible && matchesSearch) {
+            item.style.display = '';
+            hasVisibleItems = true;
+          } else {
+            item.style.display = 'none';
+          }
+        });
+
+        catCard.style.display = (categoryVisible && hasVisibleItems) ? '' : 'none';
+      });
+    }
+
+    searchInput.addEventListener('input', filterCompetences);
+    filterCategorie.addEventListener('change', filterCompetences);
+
+    // Suppression
+    function deleteCompetence(id) {
+      if (confirm('Êtes-vous sûr de vouloir supprimer cette compétence ?')) {
+        fetch(`/rh/competences/${id}/delete`, { method: 'POST' })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              location.reload();
+            } else {
+              alert('Erreur: ' + data.message);
+            }
+          });
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Présence Aujourd'hui - Lab Solutions</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .filter-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .employee-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            border-left: 4px solid;
+        }
+        
+        .employee-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+        
+        .employee-card.present {
+            border-left-color: #28a745;
+        }
+        
+        .employee-card.absent {
+            border-left-color: #dc3545;
+        }
+        
+        .employee-card.retard {
+            border-left-color: #ffc107;
+        }
+        
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+        
+        .time-badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .quick-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .quick-stat {
+            flex: 1;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+        
+        .quick-stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 5px 0;
+        }
+        
+        .quick-stat-label {
+            color: #6c757d;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+    </style>
+ <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/sidebar') %>
+    
+    <div class="main-content">
+   
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <div class="row">
+           
+        
+                <!-- Page Header -->
+                <div class="page-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-2"><i class="bi bi-calendar-day"></i> Présence Aujourd'hui</h2>
+                            <p class="text-muted mb-0">
+                                <%= new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %>
+                            </p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success" onclick="synchroniserPointages()">
+                                <i class="bi bi-arrow-repeat"></i> Synchroniser
+                            </button>
+                            <button class="btn btn-primary" onclick="exporterExcel()">
+                                <i class="bi bi-file-earmark-excel"></i> Exporter Excel
+                            </button>
+                            <button class="btn btn-info" onclick="imprimerFeuille()">
+                                <i class="bi bi-printer"></i> Imprimer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <div class="quick-stat-label">Total Employés</div>
+                        <div class="quick-stat-value text-primary"><%= stats.total || 0 %></div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="quick-stat-label">Présents</div>
+                        <div class="quick-stat-value text-success"><%= stats.presents || 0 %></div>
+                        <small class="text-muted"><%= ((stats.presents / stats.total) * 100).toFixed(1) %>%</small>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="quick-stat-label">Absents</div>
+                        <div class="quick-stat-value text-danger"><%= stats.absents || 0 %></div>
+                        <small class="text-muted"><%= ((stats.absents / stats.total) * 100).toFixed(1) %>%</small>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="quick-stat-label">Retards</div>
+                        <div class="quick-stat-value text-warning"><%= stats.retards || 0 %></div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="quick-stat-label">En Congé</div>
+                        <div class="quick-stat-value text-info"><%= stats.conges || 0 %></div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filter-card">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Filtrer par statut</label>
+                            <select class="form-select" id="filterStatut" onchange="filtrerEmployes()">
+                                <option value="tous">Tous</option>
+                                <option value="present">Présents</option>
+                                <option value="absent">Absents</option>
+                                <option value="retard">Retards</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Département</label>
+                            <select class="form-select" id="filterDepartement" onchange="filtrerEmployes()">
+                                <option value="tous">Tous</option>
+                                <option value="analyses">Analyses</option>
+                                <option value="administration">Administration</option>
+                                <option value="prelevement">Prélèvement</option>
+                                <option value="technique">Technique</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Rechercher</label>
+                            <input type="text" class="form-control" id="searchInput" 
+                                   placeholder="Nom, matricule..." 
+                                   onkeyup="rechercherEmploye()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+                                <i class="bi bi-x-circle"></i> Réinitialiser
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employee List -->
+                <div id="employeeList">
+                    <% if (employes && employes.length > 0) { %>
+                        <% employes.forEach(emp => { %>
+                        <div class="employee-card <%= emp.statut %>" data-statut="<%= emp.statut %>" data-dept="<%= emp.departement %>" data-nom="<%= emp.nom.toLowerCase() %>">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-3 flex-grow-1">
+                                    <div class="avatar">
+                                        <%= emp.nom.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() %>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-1"><%= emp.nom %></h5>
+                                        <small class="text-muted">
+                                            <i class="bi bi-person-badge"></i> <%= emp.matricule %> • 
+                                            <i class="bi bi-building"></i> <%= emp.departement %>
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-4">
+                                    <!-- Heure Arrivée -->
+                                    <div class="text-center">
+                                        <small class="text-muted d-block">Arrivée</small>
+                                        <% if (emp.heureArrivee) { %>
+                                            <span class="time-badge bg-success text-white">
+                                                <i class="bi bi-box-arrow-in-right"></i> <%= emp.heureArrivee %>
+                                            </span>
+                                        <% } else { %>
+                                            <span class="time-badge bg-light text-muted">--:--</span>
+                                        <% } %>
+                                    </div>
+
+                                    <!-- Heure Départ -->
+                                    <div class="text-center">
+                                        <small class="text-muted d-block">Départ</small>
+                                        <% if (emp.heureDepart) { %>
+                                            <span class="time-badge bg-info text-white">
+                                                <i class="bi bi-box-arrow-right"></i> <%= emp.heureDepart %>
+                                            </span>
+                                        <% } else if (emp.statut === 'present') { %>
+                                            <span class="time-badge bg-light text-muted">
+                                                <span class="status-indicator bg-success"></span> En cours
+                                            </span>
+                                        <% } else { %>
+                                            <span class="time-badge bg-light text-muted">--:--</span>
+                                        <% } %>
+                                    </div>
+
+                                    <!-- Statut -->
+                                    <div class="text-center" style="min-width: 120px;">
+                                        <% if (emp.statut === 'present') { %>
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle-fill"></i> Présent
+                                            </span>
+                                        <% } else if (emp.statut === 'absent') { %>
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-x-circle-fill"></i> Absent
+                                            </span>
+                                        <% } else if (emp.statut === 'retard') { %>
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-clock-history"></i> Retard
+                                            </span>
+                                        <% } %>
+                                        <% if (emp.retardMinutes) { %>
+                                            <small class="d-block text-muted mt-1">+<%= emp.retardMinutes %> min</small>
+                                        <% } %>
+                                    </div>
+
+                                    <!-- Actions -->
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="/presence/detail/<%= emp.id %>">
+                                                <i class="bi bi-eye"></i> Voir détails
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#" onclick="ajouterNote('<%= emp.id %>')">
+                                                <i class="bi bi-chat-left-text"></i> Ajouter note
+                                            </a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item" href="#" onclick="corrigerPointage('<%= emp.id %>')">
+                                                <i class="bi bi-pencil"></i> Corriger pointage
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox display-1 text-muted"></i>
+                            <h4 class="text-muted mt-3">Aucun employé trouvé</h4>
+                            <p class="text-muted">Les données de présence s'afficheront ici</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function filtrerEmployes() {
+            const statutFilter = document.getElementById('filterStatut').value;
+            const deptFilter = document.getElementById('filterDepartement').value;
+            const cards = document.querySelectorAll('.employee-card');
+            
+            cards.forEach(card => {
+                const statut = card.dataset.statut;
+                const dept = card.dataset.dept;
+                
+                const matchStatut = statutFilter === 'tous' || statut === statutFilter;
+                const matchDept = deptFilter === 'tous' || dept === deptFilter;
+                
+                card.style.display = (matchStatut && matchDept) ? 'block' : 'none';
+            });
+        }
+
+        function rechercherEmploye() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('.employee-card');
+            
+            cards.forEach(card => {
+                const nom = card.dataset.nom;
+                card.style.display = nom.includes(search) ? 'block' : 'none';
+            });
+        }
+
+        function resetFilters() {
+            document.getElementById('filterStatut').value = 'tous';
+            document.getElementById('filterDepartement').value = 'tous';
+            document.getElementById('searchInput').value = '';
+            
+            document.querySelectorAll('.employee-card').forEach(card => {
+                card.style.display = 'block';
+            });
+        }
+
+        function synchroniserPointages() {
+            if (confirm('Synchroniser les pointages depuis la machine ZKTeco ?')) {
+                window.location.href = '/api/presence/sync';
+            }
+        }
+
+        function exporterExcel() {
+            window.location.href = '/api/presence/export/today?format=excel';
+        }
+
+        function imprimerFeuille() {
+            window.print();
+        }
+
+        function ajouterNote(employeId) {
+            const note = prompt('Ajouter une note pour cet employé :');
+            if (note) {
+                fetch(`/api/presence/note/${employeId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ note, date: new Date() })
+                }).then(() => location.reload());
+            }
+        }
+
+        function corrigerPointage(employeId) {
+            window.location.href = `/presence/corriger/${employeId}`;
+        }
+
+        // Auto-refresh toutes les 60 secondes
+        setInterval(() => location.reload(), 60000);
+    </script>
+</body>
+</html>

@@ -1,4 +1,3 @@
-<!-- ==================== views/personnel-add.ejs ==================== -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -11,7 +10,7 @@
     <link href="/css/personnel-style.css" rel="stylesheet">
 </head>
 <body>
- <%- include('partials/sidebar', { currentPage: 'dashboard' }) %>
+    <%- include('partials/sidebar', { currentPage: 'personnel-add' }) %>
     
     <div class="container-fluid">
         <div class="row">
@@ -76,6 +75,25 @@
                                 <label class="form-label">Date d'Embauche <span class="text-danger">*</span></label>
                                 <input type="date" class="form-control" name="date_embauche" required>
                             </div>
+                            
+                            <!-- NOUVEAU: Sélection du département -->
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    <i class="bi bi-building me-1"></i> Département
+                                </label>
+                                <select class="form-select" name="departement_id" id="departementSelect">
+                                    <option value="">Aucun département assigné</option>
+                                    <% if (typeof departements !== 'undefined' && departements.length > 0) { %>
+                                        <% departements.forEach(dept => { %>
+                                            <option value="<%= dept.id %>">
+                                                <%= dept.nom %> (<%= dept.code %>)
+                                            </option>
+                                        <% }); %>
+                                    <% } %>
+                                </select>
+                                <small class="text-muted">Optionnel - Vous pouvez assigner un département</small>
+                            </div>
+                            
                             <div class="col-md-12">
                                 <label class="form-label">Adresse</label>
                                 <textarea class="form-control" name="adresse" rows="2" placeholder="Adresse complète..."></textarea>
@@ -127,7 +145,7 @@
                         </div>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Département d'Affectation</label>
+                                <label class="form-label">Département d'Affectation (Spécifique)</label>
                                 <select class="form-select" name="departement">
                                     <option value="Biochimie">Biochimie</option>
                                     <option value="Hématologie">Hématologie</option>
@@ -160,7 +178,7 @@
                                 <input type="text" class="form-control" name="poste" placeholder="Ex: Responsable Métrologie, Responsable Qualité...">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Département Rattaché</label>
+                                <label class="form-label">Département Rattaché (Spécifique)</label>
                                 <input type="text" class="form-control" name="departement_cadre" placeholder="Département ou service">
                             </div>
                         </div>
@@ -196,22 +214,18 @@
             'Agent Logistique': 'LOG'
         };
 
-        // Compteurs par type (à charger depuis la base de données)
         let matriculeCounters = {};
 
-        // Charger les compteurs de matricules au chargement de la page
         async function loadMatriculeCounters() {
             try {
                 const response = await fetch('/personnel/api/list');
                 const data = await response.json();
                 const personnel = data.data;
 
-                // Initialiser les compteurs
                 Object.keys(matriculePrefixes).forEach(type => {
                     matriculeCounters[type] = 0;
                 });
 
-                // Compter les matricules existants par type
                 personnel.forEach(p => {
                     const prefix = matriculePrefixes[p.type_personnel];
                     if (prefix && p.matricule.startsWith(prefix)) {
@@ -225,14 +239,12 @@
                 console.log('Compteurs chargés:', matriculeCounters);
             } catch (err) {
                 console.error('Erreur lors du chargement des compteurs:', err);
-                // Initialiser à 0 en cas d'erreur
                 Object.keys(matriculePrefixes).forEach(type => {
                     matriculeCounters[type] = 0;
                 });
             }
         }
 
-        // Générer le matricule automatiquement
         function generateMatricule(type) {
             if (!type || !matriculePrefixes[type]) {
                 return '';
@@ -245,14 +257,11 @@
             return matricule;
         }
 
-        // Gestion du changement de type de personnel
         $('#typePersonnel').on('change', function() {
             const type = $(this).val();
             
-            // Masquer tous les champs spécifiques
             $('#biologisteFields, #technicienFields, #cadreFields').hide();
             
-            // Afficher les champs correspondants
             if(type === 'Biologiste') {
                 $('#biologisteFields').slideDown();
             } else if(type === 'Technicien') {
@@ -261,7 +270,6 @@
                 $('#cadreFields').slideDown();
             }
             
-            // Générer le matricule
             if (type) {
                 const matricule = generateMatricule(type);
                 $('#matricule').val(matricule);
@@ -275,7 +283,6 @@
             }
         });
 
-        // Validation du formulaire
         $('#personnelForm').on('submit', function(e) {
             const type = $('#typePersonnel').val();
             if (!type) {
@@ -291,14 +298,12 @@
                 return false;
             }
 
-            // Confirmation avant soumission
             if (!confirm(`Confirmer l'ajout du personnel avec le matricule ${matricule} ?`)) {
                 e.preventDefault();
                 return false;
             }
         });
 
-        // Animation de réinitialisation
         $('button[type="reset"]').on('click', function() {
             setTimeout(() => {
                 $('#matricule').val('');
@@ -307,12 +312,9 @@
             }, 100);
         });
 
-        // Initialisation au chargement de la page
         $(document).ready(async function() {
-            // Charger les compteurs
             await loadMatriculeCounters();
             
-            // Définir la date d'embauche par défaut à aujourd'hui
             const today = new Date().toISOString().split('T')[0];
             $('input[name="date_embauche"]').val(today);
 

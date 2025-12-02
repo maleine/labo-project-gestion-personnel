@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soldes Congés</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --sidebar-width: 250px;
+    }
+    
+    .main-content {
+      margin-left: var(--sidebar-width);
+      padding: 30px;
+      min-height: 100vh;
+      background-color: #f8f9fa;
+    }
+    
+    .solde-card {
+      border-left: 4px solid #0d6efd;
+      transition: transform 0.2s;
+      margin-bottom: 1rem;
+    }
+    
+    .solde-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .solde-critique {
+      border-left-color: #dc3545;
+    }
+    
+    .solde-faible {
+      border-left-color: #ffc107;
+    }
+    
+    .solde-normal {
+      border-left-color: #28a745;
+    }
+    
+    .badge-solde {
+      font-size: 1.2rem;
+      padding: 0.5rem 1rem;
+    }
+    
+    .progress-custom {
+      height: 25px;
+      font-size: 0.9rem;
+    }
+    
+    .stat-box {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+ <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+  
+  <div class="main-content">
+    <div class="container-fluid">
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h2><i class="bi bi-calendar-check"></i> Soldes Congés</h2>
+              <p class="text-muted">Suivi des soldes de congés du personnel</p>
+            </div>
+            <div>
+              <button class="btn btn-secondary" onclick="window.print()">
+                <i class="bi bi-printer"></i> Imprimer
+              </button>
+              <a href="/absences/demandes" class="btn btn-primary">
+                <i class="bi bi-list-ul"></i> Demandes
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistiques globales -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="stat-box">
+            <h6 class="mb-2">Total Personnel</h6>
+            <h3><%= soldes.length %></h3>
+            <small>Employés suivis</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-box" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <h6 class="mb-2">Solde Moyen</h6>
+            <h3>
+              <%= soldes.length > 0 ? Math.round(soldes.reduce((sum, s) => sum + parseInt(s.solde_restant || 0), 0) / soldes.length) : 0 %> j
+            </h3>
+            <small>Jours disponibles</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-box" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <h6 class="mb-2">Congés Pris</h6>
+            <h3>
+              <%= soldes.reduce((sum, s) => sum + parseInt(s.conges_pris || 0), 0) %> j
+            </h3>
+            <small>Cette année</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-box" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+            <h6 class="mb-2">Total Acquis</h6>
+            <h3>
+              <%= soldes.reduce((sum, s) => sum + parseInt(s.total_acquis || 0), 0) %> j
+            </h3>
+            <small>Droits annuels</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtres -->
+      <div class="row mb-3">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <input type="text" id="searchInput" class="form-control" placeholder="🔍 Rechercher un personnel...">
+                </div>
+                <div class="col-md-3">
+                  <select id="filterType" class="form-select">
+                    <option value="">Tous les types</option>
+                    <option value="Médecin">Médecins</option>
+                    <option value="Infirmier">Infirmiers</option>
+                    <option value="Administratif">Administratifs</option>
+                    <option value="Technicien">Techniciens</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <select id="filterSolde" class="form-select">
+                    <option value="">Tous les soldes</option>
+                    <option value="critique">Solde critique (< 5j)</option>
+                    <option value="faible">Solde faible (5-10j)</option>
+                    <option value="normal">Solde normal (> 10j)</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <button class="btn btn-secondary w-100" onclick="resetFilters()">
+                    <i class="bi bi-arrow-clockwise"></i> Réinitialiser
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Liste des soldes -->
+      <div id="soldesList">
+        <% if (soldes.length === 0) { %>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> Aucun solde de congés enregistré
+        </div>
+        <% } else { %>
+        <% soldes.forEach(solde => { 
+          const soldeRestant = parseInt(solde.solde_restant || 0);
+          const totalAcquis = parseInt(solde.total_acquis || 0);
+          const congesPris = parseInt(solde.conges_pris || 0);
+          const pourcentageUtilise = totalAcquis > 0 ? (congesPris / totalAcquis * 100) : 0;
+          
+          let classSolde = 'solde-normal';
+          let badgeClass = 'bg-success';
+          if (soldeRestant < 5) {
+            classSolde = 'solde-critique';
+            badgeClass = 'bg-danger';
+          } else if (soldeRestant < 10) {
+            classSolde = 'solde-faible';
+            badgeClass = 'bg-warning';
+          }
+        %>
+        <div class="card solde-card <%= classSolde %>" 
+             data-nom="<%= solde.personnel_nom %>" 
+             data-type="<%= solde.type_personnel || '' %>"
+             data-solde="<%= soldeRestant %>">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col-md-3">
+                <h5 class="mb-1"><%= solde.personnel_nom %></h5>
+                <small class="text-muted">
+                  <i class="bi bi-person-badge"></i> <%= solde.type_personnel || 'Non spécifié' %>
+                </small>
+              </div>
+              
+              <div class="col-md-2 text-center">
+                <span class="badge <%= badgeClass %> badge-solde">
+                  <%= soldeRestant %> j
+                </span>
+                <small class="d-block text-muted mt-1">Solde restant</small>
+              </div>
+              
+              <div class="col-md-4">
+                <div class="mb-2">
+                  <small class="text-muted">Utilisation des congés</small>
+                  <div class="progress progress-custom">
+                    <div class="progress-bar <%= pourcentageUtilise > 80 ? 'bg-danger' : pourcentageUtilise > 50 ? 'bg-warning' : 'bg-success' %>" 
+                         role="progressbar" 
+                         style="width: <%= pourcentageUtilise %>%"
+                         aria-valuenow="<%= pourcentageUtilise %>" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                      <%= Math.round(pourcentageUtilise) %>%
+                    </div>
+                  </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <small>Pris: <%= congesPris %>j</small>
+                  <small>Acquis: <%= totalAcquis %>j</small>
+                </div>
+              </div>
+              
+              <div class="col-md-3 text-end">
+                <div class="btn-group-vertical w-100">
+                  <a href="/absences/demandes/add?personnel_id=<%= solde.personnel_id %>" 
+                     class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-calendar-plus"></i> Nouvelle demande
+                  </a>
+                  <a href="/absences/demandes?personnel_id=<%= solde.personnel_id %>" 
+                     class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-list"></i> Historique
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <% }); %>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Filtrage en temps réel
+    const searchInput = document.getElementById('searchInput');
+    const filterType = document.getElementById('filterType');
+    const filterSolde = document.getElementById('filterSolde');
+    const cards = document.querySelectorAll('.solde-card');
+
+    function applyFilters() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const typeValue = filterType.value;
+      const soldeValue = filterSolde.value;
+
+      cards.forEach(card => {
+        const nom = card.dataset.nom.toLowerCase();
+        const type = card.dataset.type;
+        const solde = parseInt(card.dataset.solde);
+
+        let showCard = true;
+
+        // Filtre recherche
+        if (searchTerm && !nom.includes(searchTerm)) {
+          showCard = false;
+        }
+
+        // Filtre type
+        if (typeValue && type !== typeValue) {
+          showCard = false;
+        }
+
+        // Filtre solde
+        if (soldeValue === 'critique' && solde >= 5) {
+          showCard = false;
+        } else if (soldeValue === 'faible' && (solde < 5 || solde > 10)) {
+          showCard = false;
+        } else if (soldeValue === 'normal' && solde <= 10) {
+          showCard = false;
+        }
+
+        card.style.display = showCard ? 'block' : 'none';
+      });
+    }
+
+    searchInput.addEventListener('input', applyFilters);
+    filterType.addEventListener('change', applyFilters);
+    filterSolde.addEventListener('change', applyFilters);
+
+    function resetFilters() {
+      searchInput.value = '';
+      filterType.value = '';
+      filterSolde.value = '';
+      applyFilters();
+    }
+  </script>
+</body>
+</html>

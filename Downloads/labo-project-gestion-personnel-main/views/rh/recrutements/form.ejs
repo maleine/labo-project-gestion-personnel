@@ -1,382 +1,146 @@
-<!-- views/rh/recrutements/form.ejs -->
+<!-- ==================== views/rh/recrutements/form.ejs ==================== -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= recrutement ? 'Modifier' : 'Nouveau' %> Recrutement - Lab Manager</title>
+  <title><%= recrutement ? 'Modifier' : 'Nouveau' %> Recrutement</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --sidebar-width: 250px;
+    }
+    .main-content {
+      margin-left: var(--sidebar-width);
+      padding: 30px;
+      min-height: 100vh;
+    }
+  </style>
 </head>
 <body>
-  <div class="d-flex">
-    <%- include('../../partials/sidebar') %>
-    
-    <div class="main-content" style="margin-left: 260px; width: calc(100% - 260px);">
-      
-      
-      <div class="container-fluid p-4">
-        <!-- En-tête -->
-        <div class="mb-4">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h2>
-                <i class="bi bi-person-plus text-success"></i> 
-                <%= recrutement ? 'Modifier le Recrutement' : 'Nouveau Recrutement' %>
-              </h2>
-              <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                  <li class="breadcrumb-item"><a href="/dashboard">Accueil</a></li>
-                  <li class="breadcrumb-item"><a href="/rh/dashboard">RH</a></li>
-                  <li class="breadcrumb-item"><a href="/rh/recrutements">Recrutements</a></li>
-                  <li class="breadcrumb-item active"><%= recrutement ? 'Modifier' : 'Nouveau' %></li>
-                </ol>
-              </nav>
+  <%- include('../../partials/sidebar', { currentPage: 'recrutements' }) %>
+  
+  <div class="main-content">
+    <div class="container-fluid px-4 py-4">
+      <!-- En-tête -->
+      <div class="mb-4">
+        <h2><i class="bi bi-person-plus-fill text-success"></i> <%= recrutement ? 'Modifier' : 'Nouveau' %> Recrutement</h2>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/dashboard">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/rh/dashboard">RH</a></li>
+            <li class="breadcrumb-item"><a href="/rh/recrutements">Recrutements</a></li>
+            <li class="breadcrumb-item active"><%= recrutement ? 'Modifier' : 'Nouveau' %></li>
+          </ol>
+        </nav>
+      </div>
+
+      <!-- Formulaire -->
+      <form method="POST" action="/rh/recrutements/<%= recrutement ? recrutement.id + '/edit' : 'nouveau' %>">
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informations Générales</h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <!-- Référence -->
+              <div class="col-md-4">
+                <label class="form-label">Référence <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="reference" 
+                       value="<%= recrutement ? recrutement.reference : 'REC-' + Date.now() %>" 
+                       <%= recrutement ? 'readonly' : '' %> required>
+              </div>
+
+              <!-- Poste -->
+              <div class="col-md-8">
+                <label class="form-label">Poste <span class="text-danger">*</span></label>
+                <select class="form-select" name="poste_id" required>
+                  <option value="">Sélectionner un poste...</option>
+                  <% postes.forEach(poste => { %>
+                  <option value="<%= poste.id %>" 
+                          <%= recrutement && recrutement.poste_id === poste.id ? 'selected' : '' %>>
+                    <%= poste.titre %> - <%= poste.departement_nom %>
+                  </option>
+                  <% }) %>
+                </select>
+              </div>
+
+              <!-- Type de recrutement -->
+              <div class="col-md-4">
+                <label class="form-label">Type de Recrutement <span class="text-danger">*</span></label>
+                <select class="form-select" name="type_recrutement" required>
+                  <option value="">Sélectionner...</option>
+                  <option value="CDI" <%= recrutement && recrutement.type_recrutement === 'CDI' ? 'selected' : '' %>>CDI</option>
+                  <option value="CDD" <%= recrutement && recrutement.type_recrutement === 'CDD' ? 'selected' : '' %>>CDD</option>
+                  <option value="Stage" <%= recrutement && recrutement.type_recrutement === 'Stage' ? 'selected' : '' %>>Stage</option>
+                  <option value="Alternance" <%= recrutement && recrutement.type_recrutement === 'Alternance' ? 'selected' : '' %>>Alternance</option>
+                  <option value="Intérim" <%= recrutement && recrutement.type_recrutement === 'Intérim' ? 'selected' : '' %>>Intérim</option>
+                </select>
+              </div>
+
+              <!-- Nombre de postes -->
+              <div class="col-md-4">
+                <label class="form-label">Nombre de Postes <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" name="nombre_postes" min="1"
+                       value="<%= recrutement ? recrutement.nombre_postes : 1 %>" required>
+              </div>
+
+              <!-- Statut -->
+              <div class="col-md-4">
+                <label class="form-label">Statut</label>
+                <select class="form-select" name="statut">
+                  <option value="Brouillon" <%= !recrutement || recrutement.statut === 'Brouillon' ? 'selected' : '' %>>Brouillon</option>
+                  <option value="Ouvert" <%= recrutement && recrutement.statut === 'Ouvert' ? 'selected' : '' %>>Ouvert</option>
+                  <option value="En cours" <%= recrutement && recrutement.statut === 'En cours' ? 'selected' : '' %>>En cours</option>
+                  <option value="Cloturé" <%= recrutement && recrutement.statut === 'Cloturé' ? 'selected' : '' %>>Cloturé</option>
+                </select>
+              </div>
+
+              <!-- Date ouverture -->
+              <div class="col-md-6">
+                <label class="form-label">Date d'Ouverture <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" name="date_ouverture"
+                       value="<%= recrutement && recrutement.date_ouverture ? recrutement.date_ouverture.toISOString().split('T')[0] : new Date().toISOString().split('T')[0] %>" required>
+              </div>
+
+              <!-- Date clôture -->
+              <div class="col-md-6">
+                <label class="form-label">Date de Clôture</label>
+                <input type="date" class="form-control" name="date_cloture"
+                       value="<%= recrutement && recrutement.date_cloture ? recrutement.date_cloture.toISOString().split('T')[0] : '' %>">
+              </div>
+
+              <!-- Description -->
+              <div class="col-md-12">
+                <label class="form-label">Description du Poste</label>
+                <textarea class="form-control" name="description" rows="4"><%= recrutement ? recrutement.description || '' : '' %></textarea>
+              </div>
+
+              <!-- Exigences -->
+              <div class="col-md-12">
+                <label class="form-label">Exigences & Qualifications</label>
+                <textarea class="form-control" name="exigences" rows="4"><%= recrutement ? recrutement.exigences || '' : '' %></textarea>
+                <small class="text-muted">Diplômes, expériences, compétences requises...</small>
+              </div>
             </div>
-            <a href="/rh/recrutements" class="btn btn-outline-secondary">
-              <i class="bi bi-arrow-left"></i> Retour
-            </a>
           </div>
         </div>
 
-        <!-- Formulaire -->
-        <form action="<%= recrutement ? `/rh/recrutements/${recrutement.id}/edit` : '/rh/recrutements/nouveau' %>" 
-              method="POST" id="recrutementForm">
-          
-          <div class="row">
-            <!-- Colonne principale -->
-            <div class="col-lg-8">
-              
-              <!-- Informations générales -->
-              <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                  <h5 class="mb-0">
-                    <i class="bi bi-info-circle"></i> 
-                    Informations Générales
-                  </h5>
-                </div>
-                <div class="card-body">
-                  
-                  <!-- Poste -->
-                  <div class="mb-3">
-                    <label for="poste_id" class="form-label">
-                      Poste à pourvoir <span class="text-danger">*</span>
-                    </label>
-                    <select class="form-select" 
-                            id="poste_id" 
-                            name="poste_id" 
-                            required
-                            onchange="loadPosteDetails(this.value)">
-                      <option value="">-- Sélectionnez un poste --</option>
-                      <% postes.forEach(poste => { %>
-                      <option value="<%= poste.id %>" 
-                              <%= recrutement && recrutement.poste_id === poste.id ? 'selected' : '' %>>
-                        <%= poste.titre %> (<%= poste.code %>)
-                      </option>
-                      <% }) %>
-                    </select>
-                  </div>
+        <!-- Boutons d'action -->
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-save"></i> Enregistrer
+          </button>
+          <a href="/rh/recrutements" class="btn btn-secondary">
+            <i class="bi bi-x-circle"></i> Annuler
+          </a>
+        </div>
+      </form>
 
-                  <!-- Type et Nombre -->
-                  <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label for="type_recrutement" class="form-label">
-                        Type de contrat <span class="text-danger">*</span>
-                      </label>
-                      <select class="form-select" 
-                              id="type_recrutement" 
-                              name="type_recrutement" 
-                              required>
-                        <option value="">-- Sélectionnez --</option>
-                        <option value="CDI" <%= recrutement && recrutement.type_recrutement === 'CDI' ? 'selected' : '' %>>CDI</option>
-                        <option value="CDD" <%= recrutement && recrutement.type_recrutement === 'CDD' ? 'selected' : '' %>>CDD</option>
-                        <option value="Stage" <%= recrutement && recrutement.type_recrutement === 'Stage' ? 'selected' : '' %>>Stage</option>
-                        <option value="Alternance" <%= recrutement && recrutement.type_recrutement === 'Alternance' ? 'selected' : '' %>>Alternance</option>
-                        <option value="Intérim" <%= recrutement && recrutement.type_recrutement === 'Intérim' ? 'selected' : '' %>>Intérim</option>
-                      </select>
-                    </div>
-                    <div class="col-md-6">
-                      <label for="nombre_postes" class="form-label">
-                        Nombre de postes <span class="text-danger">*</span>
-                      </label>
-                      <input type="number" 
-                             class="form-control" 
-                             id="nombre_postes" 
-                             name="nombre_postes" 
-                             min="1" 
-                             value="<%= recrutement ? recrutement.nombre_postes : 1 %>"
-                             required>
-                    </div>
-                  </div>
-
-                  <!-- Dates -->
-                  <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label for="date_ouverture" class="form-label">
-                        Date d'ouverture <span class="text-danger">*</span>
-                      </label>
-                      <input type="date" 
-                             class="form-control" 
-                             id="date_ouverture" 
-                             name="date_ouverture" 
-                             value="<%= recrutement ? new Date(recrutement.date_ouverture).toISOString().split('T')[0] : '' %>"
-                             required>
-                    </div>
-                    <div class="col-md-6">
-                      <label for="date_cloture" class="form-label">
-                        Date de clôture <span class="text-danger">*</span>
-                      </label>
-                      <input type="date" 
-                             class="form-control" 
-                             id="date_cloture" 
-                             name="date_cloture" 
-                             value="<%= recrutement ? new Date(recrutement.date_cloture).toISOString().split('T')[0] : '' %>"
-                             required>
-                    </div>
-                  </div>
-
-                  <!-- Statut (uniquement en modification) -->
-                  <% if (recrutement) { %>
-                  <div class="mb-3">
-                    <label for="statut" class="form-label">
-                      Statut
-                    </label>
-                    <select class="form-select" id="statut" name="statut">
-                      <option value="Brouillon" <%= recrutement.statut === 'Brouillon' ? 'selected' : '' %>>Brouillon</option>
-                      <option value="Ouvert" <%= recrutement.statut === 'Ouvert' ? 'selected' : '' %>>Ouvert</option>
-                      <option value="En cours" <%= recrutement.statut === 'En cours' ? 'selected' : '' %>>En cours</option>
-                      <option value="Cloturé" <%= recrutement.statut === 'Cloturé' ? 'selected' : '' %>>Cloturé</option>
-                      <option value="Annulé" <%= recrutement.statut === 'Annulé' ? 'selected' : '' %>>Annulé</option>
-                    </select>
-                  </div>
-                  <% } %>
-
-                </div>
-              </div>
-
-              <!-- Description du poste -->
-              <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-info text-white">
-                  <h5 class="mb-0">
-                    <i class="bi bi-file-text"></i> 
-                    Description du Poste
-                  </h5>
-                </div>
-                <div class="card-body">
-                  <div class="mb-3">
-                    <label for="description" class="form-label">
-                      Description détaillée <span class="text-danger">*</span>
-                    </label>
-                    <textarea class="form-control" 
-                              id="description" 
-                              name="description" 
-                              rows="6"
-                              placeholder="Décrivez le poste, les missions principales, l'environnement de travail..."
-                              required><%= recrutement ? (recrutement.description || '') : '' %></textarea>
-                    <small class="text-muted">
-                      Présentez le contexte, les missions, les responsabilités et l'équipe
-                    </small>
-                  </div>
-
-                  <div class="mb-0">
-                    <label for="exigences" class="form-label">
-                      Profil recherché & Exigences <span class="text-danger">*</span>
-                    </label>
-                    <textarea class="form-control" 
-                              id="exigences" 
-                              name="exigences" 
-                              rows="6"
-                              placeholder="Listez les compétences requises, formations, expériences, qualités..."
-                              required><%= recrutement ? (recrutement.exigences || '') : '' %></textarea>
-                    <small class="text-muted">
-                      Précisez les diplômes, expériences, compétences techniques et comportementales attendues
-                    </small>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            <!-- Colonne latérale -->
-            <div class="col-lg-4">
-              
-              <!-- Aide à la rédaction -->
-              <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-warning bg-opacity-10">
-                  <h6 class="mb-0">
-                    <i class="bi bi-lightbulb text-warning"></i> 
-                    Aide à la rédaction
-                  </h6>
-                </div>
-                <div class="card-body">
-                  <h6 class="small fw-bold">Description du poste</h6>
-                  <ul class="small mb-3">
-                    <li>Contexte et présentation du laboratoire</li>
-                    <li>Missions principales du poste</li>
-                    <li>Responsabilités et niveau d'autonomie</li>
-                    <li>Équipe et relations hiérarchiques</li>
-                    <li>Conditions de travail (horaires, lieu...)</li>
-                  </ul>
-
-                  <h6 class="small fw-bold">Profil recherché</h6>
-                  <ul class="small mb-0">
-                    <li>Formation et diplômes requis</li>
-                    <li>Expérience professionnelle souhaitée</li>
-                    <li>Compétences techniques essentielles</li>
-                    <li>Qualités personnelles attendues</li>
-                    <li>Habilitations ou certifications</li>
-                  </ul>
-                </div>
-              </div>
-
-              <!-- Informations du poste sélectionné -->
-              <div class="card border-0 shadow-sm mb-4" id="posteDetailsCard" style="display: none;">
-                <div class="card-header bg-light">
-                  <h6 class="mb-0">
-                    <i class="bi bi-info-circle"></i> 
-                    Détails du poste
-                  </h6>
-                </div>
-                <div class="card-body" id="posteDetailsContent">
-                  <!-- Chargé dynamiquement -->
-                </div>
-              </div>
-
-              <!-- Boutons d'action -->
-              <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                  <button type="submit" class="btn btn-success w-100 mb-2">
-                    <i class="bi bi-<%= recrutement ? 'check' : 'plus' %>-circle"></i> 
-                    <%= recrutement ? 'Enregistrer les modifications' : 'Créer le recrutement' %>
-                  </button>
-                  <a href="/rh/recrutements" class="btn btn-light w-100">
-                    <i class="bi bi-x-circle"></i> Annuler
-                  </a>
-                  
-                  <% if (recrutement) { %>
-                  <hr>
-                  <div class="text-center">
-                    <small class="text-muted">
-                      <i class="bi bi-tag"></i> Ref: <%= recrutement.reference %><br>
-                      <i class="bi bi-calendar"></i> Créé le: <%= new Date(recrutement.created_at).toLocaleDateString('fr-FR') %>
-                    </small>
-                  </div>
-                  <% } %>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-        </form>
-
-      </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // Validation du formulaire
-    document.getElementById('recrutementForm').addEventListener('submit', function(e) {
-      const dateOuverture = new Date(document.getElementById('date_ouverture').value);
-      const dateCloture = new Date(document.getElementById('date_cloture').value);
-
-      if (dateCloture <= dateOuverture) {
-        e.preventDefault();
-        alert('La date de clôture doit être postérieure à la date d\'ouverture');
-        document.getElementById('date_cloture').focus();
-        return false;
-      }
-
-      // Vérification des champs requis
-      const requiredFields = ['poste_id', 'type_recrutement', 'nombre_postes', 
-                              'date_ouverture', 'date_cloture', 'description', 'exigences'];
-      
-      for (let field of requiredFields) {
-        const element = document.getElementById(field);
-        if (!element.value.trim()) {
-          e.preventDefault();
-          alert('Veuillez remplir tous les champs obligatoires (*)');
-          element.focus();
-          return false;
-        }
-      }
-    });
-
-    // Charger les détails du poste sélectionné
-    function loadPosteDetails(posteId) {
-      if (!posteId) {
-        document.getElementById('posteDetailsCard').style.display = 'none';
-        return;
-      }
-
-      // Afficher le card
-      document.getElementById('posteDetailsCard').style.display = 'block';
-      
-      // Trouver le poste dans la liste
-      const select = document.getElementById('poste_id');
-      const option = select.options[select.selectedIndex];
-      const posteTitre = option.text;
-      
-      document.getElementById('posteDetailsContent').innerHTML = `
-        <div class="mb-2">
-          <strong>Poste sélectionné:</strong><br>
-          <span class="text-primary">${posteTitre}</span>
-        </div>
-        <small class="text-muted">
-          <i class="bi bi-info-circle"></i> 
-          Consultez la fiche de poste complète pour adapter votre annonce
-        </small>
-      `;
-    }
-
-    // Initialiser si un poste est déjà sélectionné
-    <% if (recrutement && recrutement.poste_id) { %>
-    window.addEventListener('load', function() {
-      loadPosteDetails('<%= recrutement.poste_id %>');
-    });
-    <% } %>
-
-    // Suggestion de dates
-    document.getElementById('date_ouverture').addEventListener('change', function() {
-      const dateCloture = document.getElementById('date_cloture');
-      if (!dateCloture.value) {
-        // Proposer une date de clôture 30 jours après l'ouverture
-        const dateOuv = new Date(this.value);
-        dateOuv.setDate(dateOuv.getDate() + 30);
-        dateCloture.value = dateOuv.toISOString().split('T')[0];
-      }
-    });
-
-    // Auto-remplissage intelligent basé sur le type
-    document.getElementById('type_recrutement').addEventListener('change', function() {
-      const description = document.getElementById('description');
-      const exigences = document.getElementById('exigences');
-      
-      // Ne rien faire si les champs sont déjà remplis
-      if (description.value.trim() || exigences.value.trim()) return;
-      
-      const type = this.value;
-      const posteSelect = document.getElementById('poste_id');
-      const posteTitre = posteSelect.options[posteSelect.selectedIndex].text;
-      
-      // Suggestions selon le type
-      const suggestions = {
-        'CDI': {
-          desc: `Le laboratoire recherche un(e) ${posteTitre} en CDI.\n\nMissions principales:\n- \n- \n- \n\nEnvironnement de travail:\n- `,
-          exig: `Formation et expérience:\n- \n\nCompétences techniques:\n- \n\nQualités personnelles:\n- Rigueur et sens de l'organisation\n- Esprit d'équipe\n- `
-        },
-        'Stage': {
-          desc: `Stage de [durée] pour un(e) ${posteTitre}.\n\nObjectifs du stage:\n- \n- \n\nMissions:\n- `,
-          exig: `Formation:\n- Étudiant(e) en [formation]\n\nCompétences souhaitées:\n- \n\nQualités:\n- Curiosité et motivation\n- `
-        }
-      };
-      
-      if (suggestions[type]) {
-        description.value = suggestions[type].desc;
-        exigences.value = suggestions[type].exig;
-      }
-    });
-  </script>
 </body>
 </html>

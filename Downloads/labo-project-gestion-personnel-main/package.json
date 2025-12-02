@@ -36,7 +36,9 @@
     "express": "^4.21.2",
     "express-session": "^1.18.2",
     "mssql": "^10.0.1",
-    "pdfkit": "^0.17.2"
+    "node-cron": "^4.2.1",
+    "pdfkit": "^0.17.2",
+    "zkteco-js": "^1.7.1"
   },
   "build": {
     "appId": "com.lab.personnel.manager",

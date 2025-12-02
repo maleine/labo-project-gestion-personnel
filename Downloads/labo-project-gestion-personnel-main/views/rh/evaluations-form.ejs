@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nouvelle Évaluation</title>
+    <title><%= evaluation ? 'Modifier' : 'Nouvelle' %> Évaluation</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -12,114 +12,307 @@
             --sidebar-width: 250px;
         }
         
-        /* Layout avec sidebar fixe */
         .main-content {
             margin-left: var(--sidebar-width);
             padding: 30px;
             min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+
+        .card-header {
+            font-weight: 600;
+        }
+
+        .required-field::after {
+            content: " *";
+            color: red;
+        }
+
+        .info-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    <%- include('../partials/sidebar', { currentPage: 'evaluations' }) %>
     
     <div class="main-content">
         <div class="container-fluid px-4 py-4">
-            <h2 class="mb-4">Nouvelle Évaluation du Personnel</h2>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="bi bi-<%= evaluation ? 'pencil-square' : 'plus-circle' %> text-primary"></i>
+                    <%= evaluation ? 'Modifier' : 'Nouvelle' %> Évaluation du Personnel
+                </h2>
+                <a href="/rh/evaluations" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i> Retour à la liste
+                </a>
+            </div>
 
-            <form method="POST" action="/rh/evaluations/create">
+            <% if (evaluation) { %>
+            <div class="info-banner">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Mode Édition</strong> - Évaluation de <%= evaluation.personnel_nom %>
+            </div>
+            <% } %>
+
+            <form method="POST" action="<%= evaluation ? '/rh/evaluations/update/' + evaluation.id : '/rh/evaluations/create' %>">
+                <!-- Section 1: Informations Générales -->
                 <div class="card mb-3">
-                    <div class="card-header bg-warning">
-                        <h5 class="mb-0">Informations Générales</h5>
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="bi bi-person-badge me-2"></i>
+                            Informations Générales
+                        </h5>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Personnel Évalué <span class="text-danger">*</span></label>
-                                <select class="form-select" name="personnel_id" required>
+                                <label class="form-label required-field">Personnel Évalué</label>
+                                <select class="form-select" name="personnel_id" required 
+                                        <%= evaluation ? 'disabled' : '' %>>
                                     <option value="">Sélectionner...</option>
                                     <% personnel.forEach(p => { %>
-                                    <option value="<%= p.id %>">
+                                    <option value="<%= p.id %>" 
+                                            <%= evaluation && evaluation.personnel_id == p.id ? 'selected' : '' %>>
                                         <%= p.prenom %> <%= p.nom %> (<%= p.type_personnel %>)
                                     </option>
                                     <% }); %>
                                 </select>
+                                <% if (evaluation) { %>
+                                    <input type="hidden" name="personnel_id" value="<%= evaluation.personnel_id %>">
+                                <% } %>
                             </div>
+
                             <div class="col-md-6">
-                                <label class="form-label">Évaluateur <span class="text-danger">*</span></label>
+                                <label class="form-label required-field">Évaluateur</label>
                                 <select class="form-select" name="evaluateur_id" required>
                                     <option value="">Sélectionner...</option>
                                     <% personnel.filter(p => ['Biologiste', 'Cadre'].includes(p.type_personnel)).forEach(p => { %>
-                                    <option value="<%= p.id %>">
+                                    <option value="<%= p.id %>"
+                                            <%= evaluation && evaluation.evaluateur_id == p.id ? 'selected' : '' %>>
                                         <%= p.prenom %> <%= p.nom %>
                                     </option>
                                     <% }); %>
                                 </select>
                             </div>
+
                             <div class="col-md-4">
-                                <label class="form-label">Type d'Évaluation <span class="text-danger">*</span></label>
+                                <label class="form-label required-field">Type d'Évaluation</label>
                                 <select class="form-select" name="type_evaluation" required>
                                     <option value="">Sélectionner...</option>
-                                    <option value="Annuelle">Évaluation Annuelle</option>
-                                    <option value="Période essai">Période d'Essai</option>
-                                    <option value="Habilitation">Habilitation</option>
-                                    <option value="Mi-parcours">Mi-parcours</option>
+                                    <option value="Annuelle" 
+                                            <%= evaluation && evaluation.type_evaluation === 'Annuelle' ? 'selected' : '' %>>
+                                        Évaluation Annuelle
+                                    </option>
+                                    <option value="Semestrielle" 
+                                            <%= evaluation && evaluation.type_evaluation === 'Semestrielle' ? 'selected' : '' %>>
+                                        Semestrielle
+                                    </option>
+                                    <option value="Période essai" 
+                                            <%= evaluation && evaluation.type_evaluation === 'Période essai' ? 'selected' : '' %>>
+                                        Période d'Essai
+                                    </option>
+                                    <option value="Probation" 
+                                            <%= evaluation && evaluation.type_evaluation === 'Probation' ? 'selected' : '' %>>
+                                        Probation
+                                    </option>
+                                    <option value="Habilitation" 
+                                            <%= evaluation && evaluation.type_evaluation === 'Habilitation' ? 'selected' : '' %>>
+                                        Habilitation
+                                    </option>
+                                    <option value="Mi-parcours" 
+                                            <%= evaluation && evaluation.type_evaluation === 'Mi-parcours' ? 'selected' : '' %>>
+                                        Mi-parcours
+                                    </option>
+                                    <option value="Ponctuelle" 
+                                            <%= evaluation && evaluation.type_evaluation === 'Ponctuelle' ? 'selected' : '' %>>
+                                        Ponctuelle
+                                    </option>
                                 </select>
                             </div>
+
                             <div class="col-md-4">
-                                <label class="form-label">Début Période <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" name="periode_debut" required>
+                                <label class="form-label required-field">Début Période</label>
+                                <input type="date" class="form-control" name="periode_debut" 
+                                       value="<%= evaluation && evaluation.periode_debut ? new Date(evaluation.periode_debut).toISOString().split('T')[0] : '' %>" 
+                                       required>
                             </div>
+
                             <div class="col-md-4">
-                                <label class="form-label">Fin Période <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" name="periode_fin" required>
+                                <label class="form-label required-field">Fin Période</label>
+                                <input type="date" class="form-control" name="periode_fin" 
+                                       value="<%= evaluation && evaluation.periode_fin ? new Date(evaluation.periode_fin).toISOString().split('T')[0] : '' %>" 
+                                       required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label required-field">Date d'Évaluation</label>
+                                <input type="date" class="form-control" name="date_evaluation" 
+                                       value="<%= evaluation && evaluation.date_evaluation ? new Date(evaluation.date_evaluation).toISOString().split('T')[0] : new Date().toISOString().split('T')[0] %>" 
+                                       required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Statut</label>
+                                <select class="form-select" name="statut">
+                                    <option value="En cours" 
+                                            <%= !evaluation || evaluation.statut === 'En cours' ? 'selected' : '' %>>
+                                        En cours
+                                    </option>
+                                    <option value="Finalisée" 
+                                            <%= evaluation && evaluation.statut === 'Finalisée' ? 'selected' : '' %>>
+                                        Finalisée
+                                    </option>
+                                    <option value="Validée" 
+                                            <%= evaluation && evaluation.statut === 'Validée' ? 'selected' : '' %>>
+                                        Validée
+                                    </option>
+                                </select>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Section 2: Évaluation -->
                 <div class="card mb-3">
                     <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">Évaluation</h5>
+                        <h5 class="mb-0">
+                            <i class="bi bi-star me-2"></i>
+                            Évaluation Détaillée
+                        </h5>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label">Note Globale / 20</label>
-                                <input type="number" step="0.1" min="0" max="20" class="form-control" name="note_globale">
+                                <input type="number" step="0.5" min="0" max="20" 
+                                       class="form-control" name="note_globale"
+                                       value="<%= evaluation && evaluation.note_globale ? evaluation.note_globale : '' %>"
+                                       placeholder="Ex: 15.5">
+                                <small class="text-muted">Entre 0 et 20</small>
                             </div>
-                            <div class="col-md-12">
-                                <label class="form-label">Points Forts</label>
-                                <textarea class="form-control" name="points_forts" rows="3"></textarea>
+
+                            <div class="col-md-9">
+                                <div class="alert alert-light mb-0">
+                                    <small>
+                                        <strong>Échelle d'évaluation:</strong>
+                                        0-10: Insuffisant | 10-12: Moyen | 12-16: Bien | 16-20: Excellent
+                                    </small>
+                                </div>
                             </div>
+
                             <div class="col-md-12">
-                                <label class="form-label">Points d'Amélioration</label>
-                                <textarea class="form-control" name="points_amelioration" rows="3"></textarea>
+                                <label class="form-label">
+                                    <i class="bi bi-hand-thumbs-up text-success me-2"></i>
+                                    Points Forts
+                                </label>
+                                <textarea class="form-control" name="points_forts" rows="4" 
+                                          placeholder="Décrivez les points forts et les compétences maîtrisées..."><%= evaluation && evaluation.points_forts ? evaluation.points_forts : '' %></textarea>
                             </div>
+
                             <div class="col-md-12">
-                                <label class="form-label">Objectifs</label>
-                                <textarea class="form-control" name="objectifs" rows="3"></textarea>
+                                <label class="form-label">
+                                    <i class="bi bi-arrow-up-circle text-warning me-2"></i>
+                                    Points d'Amélioration
+                                </label>
+                                <textarea class="form-control" name="points_amelioration" rows="4"
+                                          placeholder="Identifiez les axes d'amélioration et les compétences à développer..."><%= evaluation && evaluation.points_amelioration ? evaluation.points_amelioration : '' %></textarea>
                             </div>
+
                             <div class="col-md-12">
-                                <label class="form-label">Commentaires Généraux</label>
-                                <textarea class="form-control" name="commentaires" rows="3"></textarea>
+                                <label class="form-label">
+                                    <i class="bi bi-bullseye text-primary me-2"></i>
+                                    Objectifs pour la Prochaine Période
+                                </label>
+                                <textarea class="form-control" name="objectifs" rows="4"
+                                          placeholder="Définissez les objectifs SMART à atteindre..."><%= evaluation && evaluation.objectifs ? evaluation.objectifs : '' %></textarea>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label">
+                                    <i class="bi bi-chat-text text-secondary me-2"></i>
+                                    Commentaires Généraux
+                                </label>
+                                <textarea class="form-control" name="commentaires" rows="4"
+                                          placeholder="Ajoutez des commentaires supplémentaires..."><%= evaluation && evaluation.commentaires ? evaluation.commentaires : '' %></textarea>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save me-2"></i> Enregistrer
-                    </button>
-                    <a href="/rh/evaluations" class="btn btn-secondary">
+                <!-- Boutons d'action -->
+                <div class="d-flex justify-content-between">
+                    <a href="/rh/evaluations" class="btn btn-secondary btn-lg">
                         <i class="bi bi-x-circle me-2"></i> Annuler
                     </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-<%= evaluation ? 'check-circle' : 'save' %> me-2"></i>
+                        <%= evaluation ? 'Mettre à jour' : 'Enregistrer' %> l'évaluation
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Validation de la période
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateDebut = document.querySelector('input[name="periode_debut"]');
+            const dateFin = document.querySelector('input[name="periode_fin"]');
+            const noteInput = document.querySelector('input[name="note_globale"]');
+
+            // Validation période
+            if (dateDebut && dateFin) {
+                dateDebut.addEventListener('change', function() {
+                    dateFin.min = this.value;
+                    if (dateFin.value && dateFin.value < this.value) {
+                        alert('La date de fin doit être postérieure à la date de début');
+                        dateFin.value = '';
+                    }
+                });
+
+                dateFin.addEventListener('change', function() {
+                    if (this.value && dateDebut.value && this.value < dateDebut.value) {
+                        alert('La date de fin doit être postérieure à la date de début');
+                        this.value = '';
+                    }
+                });
+            }
+
+            // Validation note
+            if (noteInput) {
+                noteInput.addEventListener('input', function() {
+                    const value = parseFloat(this.value);
+                    if (value < 0) this.value = 0;
+                    if (value > 20) this.value = 20;
+                });
+            }
+
+            // Confirmation annulation
+            document.querySelector('.btn-secondary.btn-lg').addEventListener('click', function(e) {
+                const form = document.querySelector('form');
+                let hasChanges = false;
+                
+                // Vérifier si des champs ont été modifiés
+                const inputs = form.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    if (input.value && input.value !== input.defaultValue) {
+                        hasChanges = true;
+                    }
+                });
+
+                if (hasChanges) {
+                    if (!confirm('Êtes-vous sûr de vouloir annuler ? Les modifications non enregistrées seront perdues.')) {
+                        e.preventDefault();
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-<!-- ==================== views/rh/postes-list.ejs ==================== -->
+<!-- ==================== views/rh/postes-list.ejs (COMPLET AVEC DÉTAILS) ==================== -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -8,21 +8,47 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-     <style>
+    <style>
         :root {
             --sidebar-width: 250px;
         }
         
-        /* Layout avec sidebar fixe */
         .main-content {
             margin-left: var(--sidebar-width);
             padding: 30px;
             min-height: 100vh;
         }
+
+        .modal-header-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .info-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #6c757d;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            color: #212529;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
-  <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    <%- include('../partials/sidebar', { currentPage: 'postes' }) %>
+    
     <div class="main-content">
         <div class="container-fluid px-4 py-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -86,23 +112,226 @@
         </div>
     </div>
 
+    <!-- Modal Détails Poste -->
+    <div class="modal fade" id="posteDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title">
+                        <i class="bi bi-briefcase-fill me-2"></i>
+                        Détails du Poste
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="posteDetailsContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-warning" id="btnEditPoste">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script>
+        let currentPosteId = null;
+
         $(document).ready(function() {
             $('#postesTable').DataTable({
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
-                }
+                },
+                order: [[1, 'asc']]
             });
         });
 
-        function viewDetails(id) {
-            alert('Afficher les détails du poste ' + id);
-            // Implémenter modal avec détails
+        async function viewDetails(id) {
+            currentPosteId = id;
+            const modal = new bootstrap.Modal(document.getElementById('posteDetailsModal'));
+            modal.show();
+
+            try {
+                const response = await fetch(`/rh/postes/api/${id}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayPosteDetails(data.poste, data.personnel, data.competences);
+                } else {
+                    showError('Impossible de charger les détails du poste');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showError('Erreur lors du chargement des détails');
+            }
         }
+
+        function displayPosteDetails(poste, personnel, competences) {
+            const content = `
+                <div class="row">
+                    <!-- Informations générales -->
+                    <div class="col-md-6">
+                        <div class="info-section">
+                            <div class="info-label">Code du Poste</div>
+                            <div class="info-value">
+                                <strong>${poste.code}</strong>
+                            </div>
+                        </div>
+                        <div class="info-section">
+                            <div class="info-label">Titre</div>
+                            <div class="info-value">${poste.titre}</div>
+                        </div>
+                        <div class="info-section">
+                            <div class="info-label">Département</div>
+                            <div class="info-value">
+                                <i class="bi bi-building"></i> ${poste.departement_nom}
+                            </div>
+                        </div>
+                        <div class="info-section">
+                            <div class="info-label">Niveau</div>
+                            <div class="info-value">
+                                <span class="badge bg-info">${poste.niveau}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistiques -->
+                    <div class="col-md-6">
+                        <div class="info-section">
+                            <div class="info-label">Postes Disponibles</div>
+                            <div class="info-value">
+                                <h3 class="mb-0 text-primary">${poste.nb_postes_disponibles}</h3>
+                            </div>
+                        </div>
+                        <div class="info-section">
+                            <div class="info-label">Postes Occupés</div>
+                            <div class="info-value">
+                                <h3 class="mb-0 text-success">${poste.postes_occupes || 0}</h3>
+                            </div>
+                        </div>
+                        <div class="info-section">
+                            <div class="info-label">Postes Vacants</div>
+                            <div class="info-value">
+                                <h3 class="mb-0 ${poste.postes_vacants > 0 ? 'text-warning' : 'text-secondary'}">
+                                    ${poste.postes_vacants || 0}
+                                </h3>
+                            </div>
+                        </div>
+                        <div class="info-section">
+                            <div class="info-label">Statut</div>
+                            <div class="info-value">
+                                <span class="badge ${poste.statut === 'Actif' ? 'bg-success' : 'bg-secondary'} fs-6">
+                                    ${poste.statut}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                ${poste.description ? `
+                <div class="info-section mt-3">
+                    <div class="info-label">Description du Poste</div>
+                    <div class="info-value">${poste.description}</div>
+                </div>
+                ` : ''}
+
+                <!-- Compétences requises -->
+                ${competences && competences.length > 0 ? `
+                <div class="info-section mt-3">
+                    <div class="info-label mb-3">Compétences Requises</div>
+                    <div class="row g-2">
+                        ${competences.map(comp => `
+                            <div class="col-md-6">
+                                <div class="alert alert-info mb-0 py-2">
+                                    <i class="bi bi-star-fill"></i>
+                                    <strong>${comp.nom}</strong>
+                                    ${comp.niveau_requis ? `<span class="badge bg-primary ms-2">${comp.niveau_requis}</span>` : ''}
+                                    ${comp.obligatoire ? '<span class="badge bg-danger ms-1">Obligatoire</span>' : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : poste.competences_requises ? `
+                <div class="info-section mt-3">
+                    <div class="info-label">Compétences Requises</div>
+                    <div class="info-value">${poste.competences_requises}</div>
+                </div>
+                ` : ''}
+
+                <!-- Personnel affecté -->
+                ${personnel && personnel.length > 0 ? `
+                <div class="mt-4">
+                    <h5 class="mb-3">
+                        <i class="bi bi-people-fill"></i> 
+                        Personnel Affecté (${personnel.length})
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Matricule</th>
+                                    <th>Nom</th>
+                                    <th>Type</th>
+                                    <th>Date Début</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${personnel.map(p => `
+                                    <tr>
+                                        <td><strong>${p.matricule}</strong></td>
+                                        <td>${p.prenom} ${p.nom}</td>
+                                        <td><span class="badge bg-secondary">${p.type_personnel}</span></td>
+                                        <td>${p.date_debut ? new Date(p.date_debut).toLocaleDateString('fr-FR') : '-'}</td>
+                                        <td>
+                                            <span class="badge ${p.statut_affectation === 'En cours' ? 'bg-success' : 'bg-secondary'}">
+                                                ${p.statut_affectation || 'En cours'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                ` : `
+                <div class="alert alert-warning mt-4">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Aucun personnel actuellement affecté à ce poste
+                </div>
+                `}
+            `;
+
+            document.getElementById('posteDetailsContent').innerHTML = content;
+        }
+
+        function showError(message) {
+            document.getElementById('posteDetailsContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Bouton modifier dans la modal
+        document.getElementById('btnEditPoste').addEventListener('click', function() {
+            if (currentPosteId) {
+                window.location.href = `/rh/postes/edit/${currentPosteId}`;
+            }
+        });
     </script>
 </body>
 </html>

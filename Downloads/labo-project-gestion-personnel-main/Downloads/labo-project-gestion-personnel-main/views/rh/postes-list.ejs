@@ -1,0 +1,108 @@
+<!-- ==================== views/rh/postes-list.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Postes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+     <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+  <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    <div class="main-content">
+        <div class="container-fluid px-4 py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-briefcase"></i> Gestion des Postes / Fonctions</h2>
+                <a href="/rh/postes/add" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i> Créer Poste
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <table id="postesTable" class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Titre</th>
+                                <th>Département</th>
+                                <th>Niveau</th>
+                                <th>Postes Disponibles</th>
+                                <th>Postes Vacants</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% postes.forEach(poste => { %>
+                            <tr>
+                                <td><strong><%= poste.code %></strong></td>
+                                <td><%= poste.titre %></td>
+                                <td><%= poste.departement_nom %></td>
+                                <td>
+                                    <span class="badge bg-info"><%= poste.niveau %></span>
+                                </td>
+                                <td class="text-center"><%= poste.nb_postes_disponibles %></td>
+                                <td class="text-center">
+                                    <span class="badge <%= poste.postes_vacants > 0 ? 'bg-success' : 'bg-secondary' %>">
+                                        <%= poste.postes_vacants || 0 %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge <%= poste.statut === 'Actif' ? 'bg-success' : 'bg-secondary' %>">
+                                        <%= poste.statut %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-info" onclick="viewDetails(<%= poste.id %>)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <a href="/rh/postes/edit/<%= poste.id %>" class="btn btn-sm btn-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#postesTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
+                }
+            });
+        });
+
+        function viewDetails(id) {
+            alert('Afficher les détails du poste ' + id);
+            // Implémenter modal avec détails
+        }
+    </script>
+</body>
+</html>

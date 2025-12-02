@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= planning ? 'Modifier' : 'Nouveau' %> Planning</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --sidebar-width: 250px;
+    }
+    
+    .main-content {
+      margin-left: var(--sidebar-width);
+      padding: 30px;
+      min-height: 100vh;
+      background-color: #f8f9fa;
+    }
+    
+    .form-card {
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      background: white;
+    }
+    
+    .form-header {
+      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+      color: white;
+      padding: 2rem;
+      border-radius: 15px 15px 0 0;
+    }
+    
+    .type-planning-card {
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+      height: 100%;
+    }
+    
+    .type-planning-card:hover {
+      border-color: #2c3e50;
+      box-shadow: 0 4px 12px rgba(44, 62, 80, 0.2);
+      transform: translateY(-3px);
+    }
+    
+    .type-planning-card.selected {
+      border-color: #2c3e50;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(44, 62, 80, 0.3);
+    }
+    
+    .type-planning-card input[type="radio"] {
+      display: none;
+    }
+    
+    .type-planning-card .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    
+    .type-planning-card.selected .icon {
+      animation: bounce 0.5s;
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .section-title {
+      color: #2c3e50;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    
+    .info-box {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .departement-badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .departement-badge:hover {
+      background-color: #e9ecef;
+      border-color: #2c3e50;
+    }
+    
+    .departement-badge.selected {
+      background-color: #2c3e50;
+      color: white;
+      border-color: #2c3e50;
+    }
+    
+    .form-label {
+      font-weight: 500;
+      color: #2c3e50;
+    }
+    
+    .required {
+      color: #dc3545;
+    }
+  </style>
+</head>
+<body>
+ <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+  
+  <div class="main-content">
+    <div class="container-fluid">
+      <div class="row justify-content-center">
+        <div class="col-lg-10">
+          <!-- En-tête -->
+          <div class="mb-4">
+            <a href="/absences/plannings" class="btn btn-outline-secondary mb-3">
+              <i class="bi bi-arrow-left"></i> Retour aux plannings
+            </a>
+          </div>
+
+          <!-- Formulaire -->
+          <div class="card form-card">
+            <div class="form-header">
+              <h3 class="mb-0">
+                <i class="bi bi-calendar3"></i> 
+                <%= planning ? 'Modifier le planning' : 'Créer un nouveau planning' %>
+              </h3>
+              <p class="mb-0 mt-2">
+                <%= planning ? 'Modifiez les informations du planning' : 'Remplissez les informations pour créer un planning de travail' %>
+              </p>
+            </div>
+            
+            <div class="card-body p-4">
+              <form action="<%= planning ? '/absences/plannings/' + planning.id + '/update' : '/absences/plannings/create' %>" 
+                    method="POST" 
+                    id="planningForm">
+                
+                <!-- Section 1: Type de planning -->
+                <div class="mb-5">
+                  <h5 class="section-title">
+                    <i class="bi bi-tag-fill"></i> Type de Planning
+                  </h5>
+                  
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label class="type-planning-card <%= !planning || planning.type_planning === 'Garde de nuit' ? 'selected' : '' %>">
+                        <input type="radio" 
+                               name="type_planning" 
+                               value="Garde de nuit"
+                               <%= !planning || planning.type_planning === 'Garde de nuit' ? 'checked' : '' %>
+                               required>
+                        <div class="icon">
+                          <i class="bi bi-moon-stars-fill"></i>
+                        </div>
+                        <h5 class="mb-2">Garde de nuit</h5>
+                        <p class="small mb-0">Planning des gardes nocturnes</p>
+                      </label>
+                    </div>
+                    
+                    <div class="col-md-4">
+                      <label class="type-planning-card <%= planning && planning.type_planning === 'Rotation' ? 'selected' : '' %>">
+                        <input type="radio" 
+                               name="type_planning" 
+                               value="Rotation"
+                               <%= planning && planning.type_planning === 'Rotation' ? 'checked' : '' %>
+                               required>
+                        <div class="icon">
+                          <i class="bi bi-arrow-repeat"></i>
+                        </div>
+                        <h5 class="mb-2">Rotation</h5>
+                        <p class="small mb-0">Planning en rotation continue</p>
+                      </label>
+                    </div>
+                    
+                    <div class="col-md-4">
+                      <label class="type-planning-card <%= planning && planning.type_planning === 'Spécial' ? 'selected' : '' %>">
+                        <input type="radio" 
+                               name="type_planning" 
+                               value="Spécial"
+                               <%= planning && planning.type_planning === 'Spécial' ? 'checked' : '' %>
+                               required>
+                        <div class="icon">
+                          <i class="bi bi-star-fill"></i>
+                        </div>
+                        <h5 class="mb-2">Spécial</h5>
+                        <p class="small mb-0">Planning événementiel ou exceptionnel</p>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Section 2: Informations générales -->
+                <div class="mb-5">
+                  <h5 class="section-title">
+                    <i class="bi bi-info-circle-fill"></i> Informations Générales
+                  </h5>
+                  
+                  <div class="row">
+                    <div class="col-md-8">
+                      <div class="mb-3">
+                        <label for="titre" class="form-label">
+                          Titre du planning <span class="required">*</span>
+                        </label>
+                        <input type="text" 
+                               class="form-control form-control-lg" 
+                               id="titre" 
+                               name="titre"
+                               value="<%= planning ? planning.titre : '' %>"
+                               placeholder="Ex: Planning Garde de Nuit - Janvier 2025"
+                               required>
+                        <small class="text-muted">Donnez un titre descriptif à votre planning</small>
+                      </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                      <div class="mb-3">
+                        <label for="createur_id" class="form-label">
+                          Créateur <span class="required">*</span>
+                        </label>
+                        <input type="number" 
+                               class="form-control form-control-lg" 
+                               id="createur_id" 
+                               name="createur_id"
+                               value="<%= planning ? planning.createur_id : 1 %>"
+                               required>
+                        <small class="text-muted">ID de l'utilisateur créateur</small>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" 
+                              id="description" 
+                              name="description" 
+                              rows="4"
+                              placeholder="Ajoutez des détails, consignes ou informations importantes concernant ce planning..."><%= planning ? (planning.description || '') : '' %></textarea>
+                    <small class="text-muted">Cette description sera visible par tous les membres du planning</small>
+                  </div>
+                </div>
+
+                <!-- Section 3: Département (optionnel) -->
+                <div class="mb-5">
+                  <h5 class="section-title">
+                    <i class="bi bi-building"></i> Département (Optionnel)
+                  </h5>
+                  
+                  <div class="info-box">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-info-circle fs-3 me-3"></i>
+                      <div>
+                        <strong>Associer un département</strong>
+                        <p class="mb-0 small">Vous pouvez lier ce planning à un département spécifique ou le laisser général</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="row">
+                    <div class="col-md-12">
+                      <label class="form-label">Sélectionnez un département</label>
+                      <select class="form-select form-select-lg" id="departement_id" name="departement_id">
+                        <option value="">Aucun département (Planning général)</option>
+                        <% departements.forEach(dept => { %>
+                        <option value="<%= dept.id %>"
+                                <%= planning && planning.departement_id === dept.id ? 'selected' : '' %>>
+                          <%= dept.nom %> 
+                          <% if (dept.code) { %>(Code: <%= dept.code %>)<% } %>
+                        </option>
+                        <% }); %>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Section 4: Période -->
+                <div class="mb-5">
+                  <h5 class="section-title">
+                    <i class="bi bi-calendar-range-fill"></i> Période du Planning
+                  </h5>
+                  
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="mb-3">
+                        <label for="date_debut" class="form-label">
+                          Date de début <span class="required">*</span>
+                        </label>
+                        <input type="date" 
+                               class="form-control form-control-lg" 
+                               id="date_debut" 
+                               name="date_debut"
+                               value="<%= planning ? new Date(planning.date_debut).toISOString().split('T')[0] : '' %>"
+                               required
+                               onchange="updateDuree()">
+                        <small class="text-muted">Première date du planning</small>
+                      </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <div class="mb-3">
+                        <label for="date_fin" class="form-label">
+                          Date de fin <span class="required">*</span>
+                        </label>
+                        <input type="date" 
+                               class="form-control form-control-lg" 
+                               id="date_fin" 
+                               name="date_fin"
+                               value="<%= planning ? new Date(planning.date_fin).toISOString().split('T')[0] : '' %>"
+                               required
+                               onchange="updateDuree()">
+                        <small class="text-muted">Dernière date du planning</small>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Durée calculée -->
+                  <div class="alert alert-info" id="dureeInfo" style="display: none;">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-clock-history fs-4 me-3"></i>
+                      <div>
+                        <strong>Durée du planning</strong>
+                        <p class="mb-0" id="dureeText">-</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Conseils et informations -->
+                <div class="mb-4">
+                  <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                      <i class="bi bi-lightbulb-fill"></i> Conseils pour créer un bon planning
+                    </div>
+                    <div class="card-body">
+                      <ul class="mb-0">
+                        <li><strong>Titre clair:</strong> Utilisez un titre descriptif incluant le type et la période</li>
+                        <li><strong>Description détaillée:</strong> Ajoutez toutes les consignes importantes</li>
+                        <li><strong>Période réaliste:</strong> Vérifiez que les dates correspondent à vos besoins</li>
+                        <li><strong>Département:</strong> Associez un département pour faciliter le filtrage</li>
+                        <li><strong>Validation:</strong> Le planning sera en "Brouillon" jusqu'à sa publication</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Boutons d'action -->
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-4 border-top">
+                  <div>
+                    <a href="/absences/plannings" class="btn btn-outline-secondary btn-lg">
+                      <i class="bi bi-x-circle"></i> Annuler
+                    </a>
+                  </div>
+                  <div>
+                    <% if (planning) { %>
+                    <button type="button" class="btn btn-outline-danger btn-lg me-2" onclick="supprimerPlanning()">
+                      <i class="bi bi-trash"></i> Supprimer
+                    </button>
+                    <% } %>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                      <i class="bi bi-check-circle"></i> 
+                      <%= planning ? 'Enregistrer les modifications' : 'Créer le planning' %>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Étapes suivantes -->
+          <% if (!planning) { %>
+          <div class="card mt-4">
+            <div class="card-body">
+              <h5 class="mb-3"><i class="bi bi-list-check"></i> Après la création</h5>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="text-center p-3">
+                    <div class="fs-1 text-primary mb-2">1</div>
+                    <h6>Ajouter des affectations</h6>
+                    <p class="small text-muted">Assignez le personnel aux différentes dates</p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="text-center p-3">
+                    <div class="fs-1 text-primary mb-2">2</div>
+                    <h6>Vérifier le planning</h6>
+                    <p class="small text-muted">Contrôlez l'équité et la couverture</p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="text-center p-3">
+                    <div class="fs-1 text-primary mb-2">3</div>
+                    <h6>Publier</h6>
+                    <p class="small text-muted">Rendez le planning visible à tous</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Gestion de la sélection des types de planning
+    document.querySelectorAll('.type-planning-card').forEach(card => {
+      card.addEventListener('click', function() {
+        document.querySelectorAll('.type-planning-card').forEach(c => c.classList.remove('selected'));
+        this.classList.add('selected');
+        this.querySelector('input[type="radio"]').checked = true;
+      });
+    });
+
+    // Calculer et afficher la durée du planning
+    function updateDuree() {
+      const dateDebut = document.getElementById('date_debut').value;
+      const dateFin = document.getElementById('date_fin').value;
+      
+      if (!dateDebut || !dateFin) return;
+
+      const debut = new Date(dateDebut);
+      const fin = new Date(dateFin);
+      
+      if (fin < debut) {
+        alert('La date de fin doit être après la date de début');
+        document.getElementById('date_fin').value = '';
+        return;
+      }
+
+      // Calculer la durée en jours
+      const diffTime = Math.abs(fin - debut);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 pour inclure le dernier jour
+      
+      // Calculer les semaines
+      const weeks = Math.floor(diffDays / 7);
+      const remainingDays = diffDays % 7;
+      
+      let dureeText = `${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+      if (weeks > 0) {
+        dureeText += ` (${weeks} semaine${weeks > 1 ? 's' : ''}`;
+        if (remainingDays > 0) {
+          dureeText += ` et ${remainingDays} jour${remainingDays > 1 ? 's' : ''}`;
+        }
+        dureeText += ')';
+      }
+      
+      document.getElementById('dureeText').textContent = dureeText;
+      document.getElementById('dureeInfo').style.display = 'block';
+    }
+
+    // Validation du formulaire
+    document.getElementById('planningForm').addEventListener('submit', function(e) {
+      const dateDebut = new Date(document.getElementById('date_debut').value);
+      const dateFin = new Date(document.getElementById('date_fin').value);
+      
+      if (dateFin < dateDebut) {
+        e.preventDefault();
+        alert('La date de fin doit être après la date de début');
+        return false;
+      }
+
+      const titre = document.getElementById('titre').value.trim();
+      if (titre.length < 5) {
+        e.preventDefault();
+        alert('Le titre doit contenir au moins 5 caractères');
+        return false;
+      }
+    });
+
+    // Fonction pour supprimer le planning
+    function supprimerPlanning() {
+      if (confirm('Êtes-vous sûr de vouloir supprimer ce planning ? Cette action est irréversible.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/absences/plannings/<%= planning ? planning.id : '' %>/delete';
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+
+    // Initialiser la durée si on est en mode édition
+    <% if (planning) { %>
+    updateDuree();
+    <% } %>
+
+    // Suggestion de titre automatique basée sur le type
+    document.querySelectorAll('input[name="type_planning"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        const titreInput = document.getElementById('titre');
+        if (!titreInput.value || titreInput.value.startsWith('Planning')) {
+          const type = this.value;
+          const now = new Date();
+          const mois = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+          titreInput.value = `Planning ${type} - ${mois.charAt(0).toUpperCase() + mois.slice(1)}`;
+        }
+      });
+    });
+  </script>
+</body>
+</html>

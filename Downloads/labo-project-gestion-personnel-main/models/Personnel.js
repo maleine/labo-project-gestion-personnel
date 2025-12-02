@@ -1,4 +1,4 @@
-// ==================== models/Personnel.js ====================
+// ==================== models/Personnel.js (MISE À JOUR) ====================
 const { getConnection, sql } = require('../database/config');
 
 class Personnel {
@@ -6,9 +6,11 @@ class Personnel {
   static async getAll() {
     const pool = await getConnection();
     const result = await pool.request().query(`
-      SELECT * FROM Personnel 
-      WHERE statut = 'Actif' 
-      ORDER BY type_personnel, nom, prenom
+      SELECT p.*, d.nom as departement_nom, d.code as departement_code
+      FROM Personnel p
+      LEFT JOIN Departements d ON p.departement_id = d.id
+      WHERE p.statut = 'Actif' 
+      ORDER BY p.type_personnel, p.nom, p.prenom
     `);
     return result.recordset;
   }
@@ -18,7 +20,12 @@ class Personnel {
     const pool = await getConnection();
     const result = await pool.request()
       .input('id', sql.Int, id)
-      .query('SELECT * FROM Personnel WHERE id = @id');
+      .query(`
+        SELECT p.*, d.nom as departement_nom, d.code as departement_code
+        FROM Personnel p
+        LEFT JOIN Departements d ON p.departement_id = d.id
+        WHERE p.id = @id
+      `);
     return result.recordset[0];
   }
 
@@ -26,7 +33,6 @@ class Personnel {
   static async getLastMatriculeByType(typePersonnel) {
     const pool = await getConnection();
     
-    // Préfixes des matricules
     const prefixes = {
       'Biologiste': 'BIO',
       'Technicien': 'TECH',
@@ -80,14 +86,15 @@ class Personnel {
       .input('date_embauche', sql.Date, data.date_embauche)
       .input('adresse', sql.Text, data.adresse || null)
       .input('type_personnel', sql.VarChar, data.type_personnel)
+      .input('departement_id', sql.Int, data.departement_id || null)
       .query(`
         INSERT INTO Personnel (
           matricule, nom, prenom, email, telephone, 
-          date_naissance, date_embauche, adresse, type_personnel
+          date_naissance, date_embauche, adresse, type_personnel, departement_id
         )
         VALUES (
           @matricule, @nom, @prenom, @email, @telephone, 
-          @date_naissance, @date_embauche, @adresse, @type_personnel
+          @date_naissance, @date_embauche, @adresse, @type_personnel, @departement_id
         );
         SELECT SCOPE_IDENTITY() AS id;
       `);
@@ -106,6 +113,7 @@ class Personnel {
       .input('telephone', sql.VarChar, data.telephone || null)
       .input('adresse', sql.Text, data.adresse || null)
       .input('date_naissance', sql.Date, data.date_naissance || null)
+      .input('departement_id', sql.Int, data.departement_id || null)
       .query(`
         UPDATE Personnel 
         SET 
@@ -115,6 +123,7 @@ class Personnel {
           telephone = @telephone, 
           adresse = @adresse,
           date_naissance = @date_naissance,
+          departement_id = @departement_id,
           updated_at = GETDATE()
         WHERE id = @id
       `);
@@ -134,8 +143,23 @@ class Personnel {
     const result = await pool.request()
       .input('type', sql.VarChar, type)
       .query(`
-        SELECT * FROM Personnel 
-        WHERE type_personnel = @type AND statut = 'Actif' 
+        SELECT p.*, d.nom as departement_nom
+        FROM Personnel p
+        LEFT JOIN Departements d ON p.departement_id = d.id
+        WHERE p.type_personnel = @type AND p.statut = 'Actif' 
+        ORDER BY p.nom, p.prenom
+      `);
+    return result.recordset;
+  }
+
+  // Récupérer le personnel d'un département
+  static async getByDepartment(departementId) {
+    const pool = await getConnection();
+    const result = await pool.request()
+      .input('departement_id', sql.Int, departementId)
+      .query(`
+        SELECT * FROM Personnel
+        WHERE departement_id = @departement_id AND statut = 'Actif'
         ORDER BY nom, prenom
       `);
     return result.recordset;
@@ -191,31 +215,17 @@ class Personnel {
     const result = await pool.request()
       .input('searchTerm', sql.VarChar, `%${searchTerm}%`)
       .query(`
-        SELECT * FROM Personnel 
-        WHERE statut = 'Actif' 
+        SELECT p.*, d.nom as departement_nom
+        FROM Personnel p
+        LEFT JOIN Departements d ON p.departement_id = d.id
+        WHERE p.statut = 'Actif' 
         AND (
-          matricule LIKE @searchTerm 
-          OR nom LIKE @searchTerm 
-          OR prenom LIKE @searchTerm 
-          OR email LIKE @searchTerm
-          OR CONCAT(prenom, ' ', nom) LIKE @searchTerm
+          p.matricule LIKE @searchTerm 
+          OR p.nom LIKE @searchTerm 
+          OR p.prenom LIKE @searchTerm 
+          OR p.email LIKE @searchTerm
+          OR CONCAT(p.prenom, ' ', p.nom) LIKE @searchTerm
         )
-        ORDER BY nom, prenom
-      `);
-    return result.recordset;
-  }
-
-  // Obtenir le personnel d'un département
-  static async getByDepartment(departement) {
-    const pool = await getConnection();
-    const result = await pool.request()
-      .input('departement', sql.VarChar, departement)
-      .query(`
-        SELECT p.* FROM Personnel p
-        LEFT JOIN Techniciens t ON p.id = t.personnel_id
-        LEFT JOIN Cadres c ON p.id = c.personnel_id
-        WHERE p.statut = 'Actif'
-        AND (t.departement = @departement OR c.departement = @departement)
         ORDER BY p.nom, p.prenom
       `);
     return result.recordset;

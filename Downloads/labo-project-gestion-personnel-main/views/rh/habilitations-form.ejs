@@ -1,10 +1,10 @@
-<!-- ==================== views/rh/habilitations-form.ejs ==================== -->
+<!-- ==================== views/rh/habilitations-form.ejs (CORRIGÉ - COMPLET) ==================== -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ajouter Habilitation</title>
+    <title><%= habilitation ? 'Modifier' : 'Ajouter' %> Habilitation</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -12,7 +12,6 @@
             --sidebar-width: 250px;
         }
         
-        /* Layout avec sidebar fixe */
         .main-content {
             margin-left: var(--sidebar-width);
             padding: 30px;
@@ -21,83 +20,128 @@
     </style>
 </head>
 <body>
-      <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    <%- include('../partials/sidebar', { currentPage: 'habilitations' }) %>
     
     <div class="main-content">
         <div class="container-fluid px-4 py-4">
-            <h2 class="mb-4">Ajouter une Habilitation</h2>
+            <h2 class="mb-4">
+                <i class="bi bi-award"></i> 
+                <%= habilitation ? 'Modifier' : 'Ajouter' %> une Habilitation
+            </h2>
 
-            <form method="POST" action="/rh/habilitations/create" enctype="multipart/form-data">
+            <form method="POST" 
+                  action="<%= habilitation ? '/rh/habilitations/update/' + habilitation.id : '/rh/habilitations/create' %>" 
+                  id="habilitationForm">
+                
                 <div class="card mb-3">
                     <div class="card-header bg-info text-white">
                         <h5 class="mb-0">Informations Habilitation</h5>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
+                            <!-- Personnel -->
                             <div class="col-md-6">
                                 <label class="form-label">Personnel <span class="text-danger">*</span></label>
-                                <select class="form-select" name="personnel_id" required>
-                                    <option value="">Sélectionner...</option>
-                                    <% personnel.forEach(p => { %>
-                                    <option value="<%= p.id %>">
-                                        <%= p.prenom %> <%= p.nom %> (<%= p.type_personnel %>)
-                                    </option>
-                                    <% }); %>
-                                </select>
+                                <% if (habilitation) { %>
+                                    <!-- En mode édition: afficher le nom et envoyer l'ID en hidden -->
+                                    <input type="text" class="form-control" 
+                                           value="<%= habilitation.personnel_nom %>" 
+                                           disabled>
+                                    <input type="hidden" name="personnel_id" value="<%= habilitation.personnel_id %>">
+                                <% } else { %>
+                                    <!-- En mode création: select normal -->
+                                    <select class="form-select" name="personnel_id" required>
+                                        <option value="">Sélectionner...</option>
+                                        <% personnel.forEach(p => { %>
+                                        <option value="<%= p.id %>">
+                                            <%= p.prenom %> <%= p.nom %> (<%= p.type_personnel %>)
+                                        </option>
+                                        <% }); %>
+                                    </select>
+                                <% } %>
                             </div>
+                            
+                            <!-- Type d'Habilitation -->
                             <div class="col-md-6">
                                 <label class="form-label">Type d'Habilitation <span class="text-danger">*</span></label>
                                 <select class="form-select" name="type_habilitation" required>
                                     <option value="">Sélectionner...</option>
-                                    <option value="Biochimie">Biochimie</option>
-                                    <option value="Hématologie">Hématologie</option>
-                                    <option value="Microbiologie">Microbiologie</option>
-                                    <option value="Biologie Délocalisée">Biologie Délocalisée</option>
-                                    <option value="Immuno-Séro-Electro">Immuno-Séro-Electro</option>
-                                    <option value="Automate Biochimie">Automate Biochimie</option>
-                                    <option value="Automate Hématologie">Automate Hématologie</option>
-                                    <option value="Automate Microbiologie">Automate Microbiologie</option>
-                                    <option value="Prélèvement">Prélèvement</option>
-                                    <option value="Qualité">Assurance Qualité</option>
-                                    <option value="Autre">Autre</option>
+                                    <option value="Biochimie" <%= habilitation && habilitation.type_habilitation === 'Biochimie' ? 'selected' : '' %>>Biochimie</option>
+                                    <option value="Hématologie" <%= habilitation && habilitation.type_habilitation === 'Hématologie' ? 'selected' : '' %>>Hématologie</option>
+                                    <option value="Microbiologie" <%= habilitation && habilitation.type_habilitation === 'Microbiologie' ? 'selected' : '' %>>Microbiologie</option>
+                                    <option value="Biologie Délocalisée" <%= habilitation && habilitation.type_habilitation === 'Biologie Délocalisée' ? 'selected' : '' %>>Biologie Délocalisée</option>
+                                    <option value="Immuno-Séro-Electro" <%= habilitation && habilitation.type_habilitation === 'Immuno-Séro-Electro' ? 'selected' : '' %>>Immuno-Séro-Electro</option>
+                                    <option value="Automate Biochimie" <%= habilitation && habilitation.type_habilitation === 'Automate Biochimie' ? 'selected' : '' %>>Automate Biochimie</option>
+                                    <option value="Automate Hématologie" <%= habilitation && habilitation.type_habilitation === 'Automate Hématologie' ? 'selected' : '' %>>Automate Hématologie</option>
+                                    <option value="Automate Microbiologie" <%= habilitation && habilitation.type_habilitation === 'Automate Microbiologie' ? 'selected' : '' %>>Automate Microbiologie</option>
+                                    <option value="Prélèvement" <%= habilitation && habilitation.type_habilitation === 'Prélèvement' ? 'selected' : '' %>>Prélèvement</option>
+                                    <option value="Qualité" <%= habilitation && habilitation.type_habilitation === 'Qualité' ? 'selected' : '' %>>Assurance Qualité</option>
+                                    <option value="Autre" <%= habilitation && habilitation.type_habilitation === 'Autre' ? 'selected' : '' %>>Autre</option>
                                 </select>
                             </div>
+                            
+                            <!-- Code Habilitation -->
                             <div class="col-md-4">
                                 <label class="form-label">Code Habilitation</label>
-                                <input type="text" class="form-control" name="code_habilitation"
+                                <input type="text" 
+                                       class="form-control" 
+                                       name="code_habilitation"
+                                       value="<%= habilitation ? (habilitation.code_habilitation || '') : '' %>"
                                        placeholder="Ex: HAB-BIO-001">
                             </div>
+                            
+                            <!-- Niveau -->
                             <div class="col-md-4">
                                 <label class="form-label">Niveau</label>
                                 <select class="form-select" name="niveau">
                                     <option value="">Non spécifié</option>
-                                    <option value="Débutant">Débutant</option>
-                                    <option value="Intermédiaire">Intermédiaire</option>
-                                    <option value="Confirmé">Confirmé</option>
-                                    <option value="Expert">Expert</option>
+                                    <option value="Débutant" <%= habilitation && habilitation.niveau === 'Débutant' ? 'selected' : '' %>>Débutant</option>
+                                    <option value="Intermédiaire" <%= habilitation && habilitation.niveau === 'Intermédiaire' ? 'selected' : '' %>>Intermédiaire</option>
+                                    <option value="Confirmé" <%= habilitation && habilitation.niveau === 'Confirmé' ? 'selected' : '' %>>Confirmé</option>
+                                    <option value="Expert" <%= habilitation && habilitation.niveau === 'Expert' ? 'selected' : '' %>>Expert</option>
                                 </select>
                             </div>
+                            
+                            <!-- Formation liée -->
                             <div class="col-md-4">
                                 <label class="form-label">Formation liée</label>
                                 <select class="form-select" name="formation_id">
                                     <option value="">Aucune</option>
                                     <% formations.forEach(f => { %>
-                                    <option value="<%= f.id %>"><%= f.titre %></option>
+                                    <option value="<%= f.id %>"
+                                            <%= habilitation && habilitation.formation_id === f.id ? 'selected' : '' %>>
+                                        <%= f.titre %>
+                                    </option>
                                     <% }); %>
                                 </select>
                             </div>
+                            
+                            <!-- Date d'Obtention -->
                             <div class="col-md-6">
                                 <label class="form-label">Date d'Obtention <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" name="date_obtention" required>
+                                <input type="date" 
+                                       class="form-control" 
+                                       name="date_obtention" 
+                                       value="<%= habilitation ? new Date(habilitation.date_obtention).toISOString().split('T')[0] : '' %>"
+                                       required>
                             </div>
+                            
+                            <!-- Date d'Expiration -->
                             <div class="col-md-6">
                                 <label class="form-label">Date d'Expiration</label>
-                                <input type="date" class="form-control" name="date_expiration">
+                                <input type="date" 
+                                       class="form-control" 
+                                       name="date_expiration"
+                                       value="<%= habilitation && habilitation.date_expiration ? new Date(habilitation.date_expiration).toISOString().split('T')[0] : '' %>">
                                 <small class="text-muted">Laisser vide si pas d'expiration</small>
                             </div>
+                            
+                            <!-- Notes / Commentaires -->
                             <div class="col-md-12">
                                 <label class="form-label">Notes / Commentaires</label>
-                                <textarea class="form-control" name="notes" rows="3"></textarea>
+                                <textarea class="form-control" 
+                                          name="notes" 
+                                          rows="3"><%= habilitation ? (habilitation.notes || '') : '' %></textarea>
                             </div>
                         </div>
                     </div>
@@ -105,7 +149,7 @@
 
                 <div>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save me-2"></i> Enregistrer
+                        <i class="bi bi-save me-2"></i> <%= habilitation ? 'Mettre à jour' : 'Enregistrer' %>
                     </button>
                     <a href="/rh/habilitations" class="btn btn-secondary">
                         <i class="bi bi-x-circle me-2"></i> Annuler
@@ -116,5 +160,33 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Validation du formulaire avant envoi
+        document.getElementById('habilitationForm').addEventListener('submit', function(e) {
+            const personnelId = document.querySelector('[name="personnel_id"]').value;
+            const typeHabilitation = document.querySelector('[name="type_habilitation"]').value;
+            const dateObtention = document.querySelector('[name="date_obtention"]').value;
+            
+            console.log('=== VÉRIFICATION FORMULAIRE ===');
+            console.log('Personnel ID:', personnelId);
+            console.log('Type Habilitation:', typeHabilitation);
+            console.log('Date Obtention:', dateObtention);
+            
+            if (!personnelId || !typeHabilitation || !dateObtention) {
+                e.preventDefault();
+                alert('Veuillez remplir tous les champs obligatoires (*)');
+                return false;
+            }
+            
+            // Afficher toutes les données du formulaire pour debug
+            const formData = new FormData(this);
+            console.log('=== DONNÉES ENVOYÉES ===');
+            for (let [key, value] of formData.entries()) {
+                console.log(key + ':', value);
+            }
+            
+            return true;
+        });
+    </script>
 </body>
 </html>

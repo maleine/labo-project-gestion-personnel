@@ -13,27 +13,212 @@
             --sidebar-width: 250px;
         }
         
-        /* Layout avec sidebar fixe */
         .main-content {
             margin-left: var(--sidebar-width);
             padding: 30px;
             min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+
+        .stat-card {
+            border-left: 4px solid;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .note-badge {
+            font-size: 1.1rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+        }
+
+        .note-excellent { background-color: #d4edda; color: #155724; }
+        .note-bien { background-color: #d1ecf1; color: #0c5460; }
+        .note-moyen { background-color: #fff3cd; color: #856404; }
+        .note-insuffisant { background-color: #f8d7da; color: #721c24; }
+
+        .evaluation-timeline {
+            border-left: 2px solid #dee2e6;
+            padding-left: 1.5rem;
+            margin-left: 1rem;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -1.65rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #0d6efd;
+            border: 2px solid white;
+        }
+
+        .section-title {
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .competence-item {
+            background-color: #f8f9fa;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 4px;
+        }
+
+        .progress-thin {
+            height: 8px;
         }
     </style>
 </head>
 <body>
-        <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    <%- include('../partials/sidebar', { currentPage: 'evaluations' }) %>
     
     <div class="main-content">
-        <div class="container-fluid px-4 py-4">
+        <div class="container-fluid">
+            <!-- En-tête -->
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="bi bi-clipboard-data"></i> Gestion des Évaluations</h2>
+                <div>
+                    <h2><i class="bi bi-clipboard-data text-primary"></i> Gestion des Évaluations</h2>
+                    <p class="text-muted mb-0">Suivi et analyse des performances du personnel</p>
+                </div>
                 <a href="/rh/evaluations/add" class="btn btn-primary">
                     <i class="bi bi-plus-circle me-2"></i> Nouvelle Évaluation
                 </a>
             </div>
 
+            <!-- Statistiques -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card border-primary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Total Évaluations</h6>
+                                    <h3 class="mb-0"><%= evaluations.length %></h3>
+                                </div>
+                                <div class="text-primary">
+                                    <i class="bi bi-clipboard-check fs-1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card border-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Validées</h6>
+                                    <h3 class="mb-0">
+                                        <%= evaluations.filter(e => e.statut === 'Validée').length %>
+                                    </h3>
+                                </div>
+                                <div class="text-success">
+                                    <i class="bi bi-check-circle fs-1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card border-info">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">En cours</h6>
+                                    <h3 class="mb-0">
+                                        <%= evaluations.filter(e => e.statut === 'En cours').length %>
+                                    </h3>
+                                </div>
+                                <div class="text-info">
+                                    <i class="bi bi-hourglass-split fs-1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card border-warning">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Note Moyenne</h6>
+                                    <h3 class="mb-0">
+                                        <% 
+                                        const notes = evaluations.filter(e => e.note_globale).map(e => parseFloat(e.note_globale));
+                                        const moyenne = notes.length > 0 ? (notes.reduce((a,b) => a+b, 0) / notes.length).toFixed(1) : '-';
+                                        %>
+                                        <%= moyenne %><% if(moyenne !== '-') { %>/20<% } %>
+                                    </h3>
+                                </div>
+                                <div class="text-warning">
+                                    <i class="bi bi-star fs-1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtres -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Type d'évaluation</label>
+                            <select id="filterType" class="form-select">
+                                <option value="">Tous les types</option>
+                                <option value="Annuelle">Annuelle</option>
+                                <option value="Semestrielle">Semestrielle</option>
+                                <option value="Probation">Probation</option>
+                                <option value="Ponctuelle">Ponctuelle</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Statut</label>
+                            <select id="filterStatut" class="form-select">
+                                <option value="">Tous les statuts</option>
+                                <option value="En cours">En cours</option>
+                                <option value="Finalisée">Finalisée</option>
+                                <option value="Validée">Validée</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Année</label>
+                            <select id="filterAnnee" class="form-select">
+                                <option value="">Toutes les années</option>
+                                <% 
+                                const years = [...new Set(evaluations.map(e => new Date(e.date_evaluation).getFullYear()))].sort((a,b) => b-a);
+                                years.forEach(year => { %>
+                                    <option value="<%= year %>"><%= year %></option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button id="resetFilters" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-x-circle me-2"></i> Réinitialiser
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table des évaluations -->
             <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i> Liste des Évaluations</h5>
+                </div>
                 <div class="card-body">
                     <table id="evaluationsTable" class="table table-hover">
                         <thead>
@@ -50,18 +235,45 @@
                         </thead>
                         <tbody>
                             <% evaluations.forEach(eval => { %>
-                            <tr>
-                                <td><strong><%= eval.personnel_nom %></strong></td>
-                                <td><%= eval.type_evaluation %></td>
+                            <tr data-type="<%= eval.type_evaluation %>" 
+                                data-statut="<%= eval.statut %>" 
+                                data-annee="<%= new Date(eval.date_evaluation).getFullYear() %>">
+                                <td>
+                                    <strong><%= eval.personnel_nom %></strong>
+                                    <br>
+                                    <small class="text-muted"><%= eval.type_personnel %></small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        <%= eval.type_evaluation %>
+                                    </span>
+                                </td>
                                 <td><%= eval.evaluateur_nom %></td>
                                 <td>
-                                    <%= new Date(eval.periode_debut).toLocaleDateString('fr-FR') %> - 
-                                    <%= new Date(eval.periode_fin).toLocaleDateString('fr-FR') %>
+                                    <small>
+                                        <%= new Date(eval.periode_debut).toLocaleDateString('fr-FR') %><br>
+                                        <i class="bi bi-arrow-down"></i><br>
+                                        <%= new Date(eval.periode_fin).toLocaleDateString('fr-FR') %>
+                                    </small>
                                 </td>
-                                <td><%= new Date(eval.date_evaluation).toLocaleDateString('fr-FR') %></td>
                                 <td>
-                                    <% if (eval.note_globale) { %>
-                                        <strong><%= eval.note_globale %>/20</strong>
+                                    <%= new Date(eval.date_evaluation).toLocaleDateString('fr-FR', { 
+                                        day: '2-digit', 
+                                        month: 'short', 
+                                        year: 'numeric' 
+                                    }) %>
+                                </td>
+                                <td>
+                                    <% if (eval.note_globale) { 
+                                        const note = parseFloat(eval.note_globale);
+                                        let noteClass = 'note-insuffisant';
+                                        if (note >= 16) noteClass = 'note-excellent';
+                                        else if (note >= 12) noteClass = 'note-bien';
+                                        else if (note >= 10) noteClass = 'note-moyen';
+                                    %>
+                                        <span class="note-badge <%= noteClass %>">
+                                            <%= note.toFixed(1) %>/20
+                                        </span>
                                     <% } else { %>
                                         <span class="text-muted">-</span>
                                     <% } %>
@@ -72,8 +284,16 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-info" onclick="viewDetails(<%= eval.id %>)">
+                                    <button class="btn btn-sm btn-info" onclick="viewDetails(<%= eval.id %>)" title="Voir les détails">
                                         <i class="bi bi-eye"></i>
+                                    </button>
+                                    <% if (eval.statut !== 'Validée') { %>
+                                    <a href="/rh/evaluations/edit/<%= eval.id %>" class="btn btn-sm btn-warning" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <% } %>
+                                    <button class="btn btn-sm btn-primary" onclick="printEvaluation(<%= eval.id %>)" title="Imprimer">
+                                        <i class="bi bi-printer"></i>
                                     </button>
                                 </td>
                             </tr>
@@ -85,22 +305,293 @@
         </div>
     </div>
 
+    <!-- Modal Détails Évaluation -->
+    <div class="modal fade" id="detailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-text me-2"></i>
+                        Détails de l'Évaluation
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i> Fermer
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="printModal()">
+                        <i class="bi bi-printer me-2"></i> Imprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    
     <script>
+        let table;
+
         $(document).ready(function() {
-            $('#evaluationsTable').DataTable({
+            // Initialiser DataTable
+            table = $('#evaluationsTable').DataTable({
                 order: [[4, 'desc']],
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
-                }
+                },
+                pageLength: 25,
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        extend: 'excel',
+                        text: '<i class="bi bi-file-excel me-2"></i> Excel',
+                        className: 'btn btn-success btn-sm'
+                    },
+                    {
+                        extend: 'pdf',
+                        text: '<i class="bi bi-file-pdf me-2"></i> PDF',
+                        className: 'btn btn-danger btn-sm'
+                    }
+                ]
+            });
+
+            // Filtres
+            $('#filterType, #filterStatut, #filterAnnee').on('change', function() {
+                applyFilters();
+            });
+
+            $('#resetFilters').on('click', function() {
+                $('#filterType, #filterStatut, #filterAnnee').val('');
+                table.search('').columns().search('').draw();
             });
         });
 
+        function applyFilters() {
+            const type = $('#filterType').val();
+            const statut = $('#filterStatut').val();
+            const annee = $('#filterAnnee').val();
+
+            table.rows().every(function() {
+                const row = $(this.node());
+                let show = true;
+
+                if (type && row.data('type') !== type) show = false;
+                if (statut && row.data('statut') !== statut) show = false;
+                if (annee && row.data('annee') != annee) show = false;
+
+                row.toggle(show);
+            });
+        }
+
         function viewDetails(id) {
-            alert('Afficher détails évaluation ' + id);
+            const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+            modal.show();
+
+            // Charger les détails via AJAX
+            fetch(`/rh/evaluations/api/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayEvaluationDetails(data.evaluation);
+                    } else {
+                        $('#modalContent').html(`
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Erreur lors du chargement des détails
+                            </div>
+                        `);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    $('#modalContent').html(`
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Une erreur est survenue
+                        </div>
+                    `);
+                });
+        }
+
+        function displayEvaluationDetails(eval) {
+            const note = eval.note_globale ? parseFloat(eval.note_globale).toFixed(1) : '-';
+            let noteClass = 'note-insuffisant';
+            if (eval.note_globale) {
+                const n = parseFloat(eval.note_globale);
+                if (n >= 16) noteClass = 'note-excellent';
+                else if (n >= 12) noteClass = 'note-bien';
+                else if (n >= 10) noteClass = 'note-moyen';
+            }
+
+            const html = `
+                <div class="evaluation-details">
+                    <!-- Informations générales -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="section-title">
+                                <i class="bi bi-person-badge me-2"></i>Informations Personnel
+                            </h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th width="40%">Nom complet:</th>
+                                    <td><strong>${eval.personnel_nom}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Type personnel:</th>
+                                    <td>${eval.type_personnel}</td>
+                                </tr>
+                                <tr>
+                                    <th>Évaluateur:</th>
+                                    <td>${eval.evaluateur_nom}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="section-title">
+                                <i class="bi bi-calendar-check me-2"></i>Détails Évaluation
+                            </h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th width="40%">Type:</th>
+                                    <td><span class="badge bg-secondary">${eval.type_evaluation}</span></td>
+                                </tr>
+                                <tr>
+                                    <th>Période:</th>
+                                    <td>
+                                        ${new Date(eval.periode_debut).toLocaleDateString('fr-FR')} - 
+                                        ${new Date(eval.periode_fin).toLocaleDateString('fr-FR')}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Date évaluation:</th>
+                                    <td>${new Date(eval.date_evaluation).toLocaleDateString('fr-FR')}</td>
+                                </tr>
+                                <tr>
+                                    <th>Statut:</th>
+                                    <td>
+                                        <span class="badge bg-${eval.statut === 'Validée' ? 'success' : eval.statut === 'Finalisée' ? 'info' : 'warning'}">
+                                            ${eval.statut}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Note globale -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="section-title">
+                                <i class="bi bi-star me-2"></i>Note Globale
+                            </h6>
+                            <div class="text-center py-3">
+                                <span class="note-badge ${noteClass}" style="font-size: 2rem; padding: 1rem 2rem;">
+                                    ${note}${eval.note_globale ? '/20' : ''}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Points forts -->
+                    ${eval.points_forts ? `
+                    <div class="mb-4">
+                        <h6 class="section-title">
+                            <i class="bi bi-hand-thumbs-up me-2"></i>Points Forts
+                        </h6>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <p class="mb-0">${eval.points_forts.replace(/\n/g, '<br>')}</p>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- Points d'amélioration -->
+                    ${eval.points_amelioration ? `
+                    <div class="mb-4">
+                        <h6 class="section-title">
+                            <i class="bi bi-arrow-up-circle me-2"></i>Points d'Amélioration
+                        </h6>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <p class="mb-0">${eval.points_amelioration.replace(/\n/g, '<br>')}</p>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- Objectifs -->
+                    ${eval.objectifs ? `
+                    <div class="mb-4">
+                        <h6 class="section-title">
+                            <i class="bi bi-bullseye me-2"></i>Objectifs Fixés
+                        </h6>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <p class="mb-0">${eval.objectifs.replace(/\n/g, '<br>')}</p>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- Commentaires -->
+                    ${eval.commentaires ? `
+                    <div class="mb-4">
+                        <h6 class="section-title">
+                            <i class="bi bi-chat-text me-2"></i>Commentaires Généraux
+                        </h6>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <p class="mb-0">${eval.commentaires.replace(/\n/g, '<br>')}</p>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            $('#modalContent').html(html);
+        }
+
+        function printEvaluation(id) {
+            window.open(`/rh/evaluations/print/${id}`, '_blank');
+        }
+
+        function printModal() {
+            const content = document.getElementById('modalContent').innerHTML;
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Évaluation</title>
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <style>
+                        body { padding: 20px; }
+                        .section-title { border-bottom: 2px solid #0d6efd; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+                        @media print {
+                            .btn { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${content}
+                    <script>window.onload = function() { window.print(); }<\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
         }
     </script>
 </body>

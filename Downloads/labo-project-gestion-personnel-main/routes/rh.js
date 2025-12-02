@@ -9,10 +9,6 @@ const Evaluation = require('../models/Evaluation');
 const { getConnection, sql } = require('../database/config');
 const Competence = require('../models/Competence');
 const Personnel = require('../models/Personnel');
-
-
-// ==================== À ajouter dans routes/rh.js ====================
-
 const Recrutement = require('../models/Recrutement');
 
 // ============ RECRUTEMENTS ============
@@ -44,7 +40,6 @@ router.get('/recrutements', async (req, res) => {
 // Formulaire nouveau recrutement
 router.get('/recrutements/nouveau', async (req, res) => {
   try {
-    const Poste = require('../models/Poste');
     const postes = await Poste.getAll();
     
     res.render('rh/recrutements/form', {
@@ -78,8 +73,6 @@ router.post('/recrutements/nouveau', async (req, res) => {
 router.get('/recrutements/:id', async (req, res) => {
   try {
     const recrutement = await Recrutement.getById(req.params.id);
-    
-    // Récupérer les compétences requises pour le poste
     const competences = await Competence.getByPoste(recrutement.poste_id);
 
     res.render('rh/recrutements/details', {
@@ -97,7 +90,6 @@ router.get('/recrutements/:id', async (req, res) => {
 router.get('/recrutements/:id/edit', async (req, res) => {
   try {
     const recrutement = await Recrutement.getById(req.params.id);
-    const Poste = require('../models/Poste');
     const postes = await Poste.getAll();
     
     res.render('rh/recrutements/form', {
@@ -111,6 +103,67 @@ router.get('/recrutements/:id/edit', async (req, res) => {
   }
 });
 
+
+// ==================== À AJOUTER/REMPLACER dans routes/rh.js ====================
+// Remplacer la route existante router.get('/postes/api/:id', ...) par celle-ci
+
+// API: Détails d'un poste avec personnel et compétences (CORRIGÉ)
+router.get('/postes/api/:id', async (req, res) => {
+  try {
+    const posteId = req.params.id;
+    
+    // Récupérer les infos du poste
+    const poste = await Poste.getById(posteId);
+    
+    if (!poste) {
+      return res.status(404).json({
+        success: false,
+        message: 'Poste non trouvé'
+      });
+    }
+
+    // Récupérer le personnel affecté au poste
+    const pool = await getConnection();
+    const personnelResult = await pool.request()
+      .input('posteId', sql.Int, posteId)
+      .query(`
+        SELECT 
+          p.id, p.matricule, p.nom, p.prenom, p.type_personnel,
+          ap.date_debut, ap.date_fin, ap.statut as statut_affectation
+        FROM Personnel p
+        INNER JOIN AffectationsPostes ap ON p.id = ap.personnel_id
+        WHERE ap.poste_id = @posteId 
+        AND ap.statut = 'En cours'
+        ORDER BY ap.date_debut DESC
+      `);
+
+    // Récupérer les compétences requises pour le poste (SANS la colonne obligatoire)
+    const competencesResult = await pool.request()
+      .input('posteId', sql.Int, posteId)
+      .query(`
+        SELECT 
+          c.id, c.nom, c.categorie,
+          cp.niveau_requis
+        FROM Competences c
+        INNER JOIN CompetencesPostes cp ON c.id = cp.competence_id
+        WHERE cp.poste_id = @posteId
+        ORDER BY c.nom
+      `);
+
+    res.json({
+      success: true,
+      poste: poste,
+      personnel: personnelResult.recordset,
+      competences: competencesResult.recordset
+    });
+  } catch (err) {
+    console.error('Erreur API poste:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
 // Mettre à jour un recrutement
 router.post('/recrutements/:id/edit', async (req, res) => {
   try {
@@ -170,7 +223,10 @@ router.get('/recrutements/rapport/:year', async (req, res) => {
 router.get('/departements', async (req, res) => {
   try {
     const departements = await Departement.getAll();
-    res.render('rh/departements-list', { departements });
+    res.render('rh/departements-list', { 
+      departements,
+      currentPage: 'departements'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -183,7 +239,11 @@ router.get('/departements/add', async (req, res) => {
     const responsables = await pool.request().query(
       'SELECT id, prenom, nom FROM Personnel WHERE type_personnel IN (\'Biologiste\', \'Cadre\') AND statut = \'Actif\' ORDER BY nom'
     );
-    res.render('rh/departements-form', { departement: null, responsables: responsables.recordset });
+    res.render('rh/departements-form', { 
+      departement: null, 
+      responsables: responsables.recordset,
+      currentPage: 'departements'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -207,9 +267,45 @@ router.get('/departements/edit/:id', async (req, res) => {
     const responsables = await pool.request().query(
       'SELECT id, prenom, nom FROM Personnel WHERE type_personnel IN (\'Biologiste\', \'Cadre\') AND statut = \'Actif\' ORDER BY nom'
     );
-    res.render('rh/departements-form', { departement, responsables: responsables.recordset });
+    res.render('rh/departements-form', { 
+      departement, 
+      responsables: responsables.recordset,
+      currentPage: 'departements'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
+  }
+});
+
+// API: Détails d'un département avec son personnel
+router.get('/departements/api/:id', async (req, res) => {
+  try {
+    const deptId = req.params.id;
+    
+    // Récupérer les infos du département
+    const departement = await Departement.getById(deptId);
+    
+    if (!departement) {
+      return res.status(404).json({
+        success: false,
+        message: 'Département non trouvé'
+      });
+    }
+
+    // Récupérer le personnel du département
+    const personnel = await Personnel.getByDepartment(deptId);
+
+    res.json({
+      success: true,
+      departement: departement,
+      personnel: personnel
+    });
+  } catch (err) {
+    console.error('Erreur API département:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 
@@ -229,7 +325,10 @@ router.post('/departements/update/:id', async (req, res) => {
 router.get('/postes', async (req, res) => {
   try {
     const postes = await Poste.getAll();
-    res.render('rh/postes-list', { postes });
+    res.render('rh/postes-list', { 
+      postes,
+      currentPage: 'postes'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -239,7 +338,11 @@ router.get('/postes', async (req, res) => {
 router.get('/postes/add', async (req, res) => {
   try {
     const departements = await Departement.getAll();
-    res.render('rh/postes-form', { poste: null, departements });
+    res.render('rh/postes-form', { 
+      poste: null, 
+      departements,
+      currentPage: 'postes'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -260,7 +363,11 @@ router.get('/postes/edit/:id', async (req, res) => {
   try {
     const poste = await Poste.getById(req.params.id);
     const departements = await Departement.getAll();
-    res.render('rh/postes-form', { poste, departements });
+    res.render('rh/postes-form', { 
+      poste, 
+      departements,
+      currentPage: 'postes'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -292,7 +399,10 @@ router.post('/postes/affecter', async (req, res) => {
 router.get('/formations', async (req, res) => {
   try {
     const formations = await Formation.getAll();
-    res.render('rh/formations-list', { formations });
+    res.render('rh/formations-list', { 
+      formations,
+      currentPage: 'formations'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -300,7 +410,10 @@ router.get('/formations', async (req, res) => {
 
 // Formulaire ajout formation
 router.get('/formations/add', (req, res) => {
-  res.render('rh/formations-form', { formation: null });
+  res.render('rh/formations-form', { 
+    formation: null,
+    currentPage: 'formations'
+  });
 });
 
 // Créer formation
@@ -322,7 +435,12 @@ router.get('/formations/:id', async (req, res) => {
     const personnel = await pool.request().query(
       'SELECT id, prenom, nom, type_personnel FROM Personnel WHERE statut = \'Actif\' ORDER BY nom'
     );
-    res.render('rh/formations-details', { formation, participants, personnel: personnel.recordset });
+    res.render('rh/formations-details', { 
+      formation, 
+      participants, 
+      personnel: personnel.recordset,
+      currentPage: 'formations'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -338,29 +456,23 @@ router.post('/formations/:id/inscrire', async (req, res) => {
   }
 });
 
-// Valider participation
-router.post('/formations/valider/:inscriptionId', async (req, res) => {
-  try {
-    await Formation.validerParticipation(
-      req.params.inscriptionId, 
-      req.body.note_evaluation, 
-      req.body.certificat_obtenu === 'on'
-    );
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
-// ========== HABILITATIONS ==========
+// ==================== À VÉRIFIER/AJOUTER dans routes/rh.js ====================
+// Section HABILITATIONS - Routes corrigées
 
 // Liste des habilitations
 router.get('/habilitations', async (req, res) => {
   try {
     const habilitations = await Habilitation.getAll();
     const aRenouveler = await Habilitation.getARenouveler(90);
-    res.render('rh/habilitations-list', { habilitations, aRenouveler });
+    
+    res.render('rh/habilitations-list', { 
+      habilitations,
+      aRenouveler,
+      currentPage: 'habilitations'
+    });
   } catch (err) {
+    console.error('Erreur liste habilitations:', err);
     res.status(500).send('Erreur: ' + err.message);
   }
 });
@@ -375,23 +487,95 @@ router.get('/habilitations/add', async (req, res) => {
     const formations = await pool.request().query(
       'SELECT id, titre FROM Formations WHERE statut = \'Terminée\' ORDER BY date_fin DESC'
     );
+    
     res.render('rh/habilitations-form', { 
       habilitation: null, 
       personnel: personnel.recordset,
-      formations: formations.recordset 
+      formations: formations.recordset,
+      currentPage: 'habilitations'
     });
   } catch (err) {
+    console.error('Erreur formulaire habilitation:', err);
     res.status(500).send('Erreur: ' + err.message);
   }
 });
 
-// Créer habilitation
+// Créer habilitation (CORRIGÉ)
 router.post('/habilitations/create', async (req, res) => {
   try {
-    await Habilitation.create(req.body);
-    res.redirect('/rh/habilitations');
+    console.log('Données du formulaire habilitation:', req.body);
+    
+    // Validation des champs requis
+    if (!req.body.personnel_id || !req.body.type_habilitation || !req.body.date_obtention) {
+      console.error('Champs requis manquants');
+      return res.status(400).send('Champs requis manquants: personnel_id, type_habilitation, date_obtention');
+    }
+    
+    const habilitationId = await Habilitation.create(req.body);
+    console.log('Habilitation créée avec ID:', habilitationId);
+    
+    res.redirect('/rh/habilitations?success=Habilitation créée avec succès');
   } catch (err) {
+    console.error('Erreur création habilitation:', err);
     res.status(500).send('Erreur: ' + err.message);
+  }
+});
+
+// Formulaire édition habilitation
+router.get('/habilitations/edit/:id', async (req, res) => {
+  try {
+    const habilitation = await Habilitation.getById(req.params.id);
+    
+    if (!habilitation) {
+      return res.status(404).send('Habilitation non trouvée');
+    }
+    
+    const pool = await getConnection();
+    const personnel = await pool.request().query(
+      'SELECT id, prenom, nom, type_personnel FROM Personnel WHERE statut = \'Actif\' ORDER BY nom'
+    );
+    
+    const formations = await pool.request().query(
+      'SELECT id, titre FROM Formations WHERE statut = \'Terminée\' ORDER BY date_fin DESC'
+    );
+    
+    res.render('rh/habilitations-form', { 
+      habilitation,
+      personnel: personnel.recordset,
+      formations: formations.recordset,
+      currentPage: 'habilitations'
+    });
+  } catch (err) {
+    console.error('Erreur édition habilitation:', err);
+    res.redirect('/rh/habilitations');
+  }
+});
+
+// Mettre à jour habilitation (CORRIGÉ)
+router.post('/habilitations/update/:id', async (req, res) => {
+  try {
+    console.log('Mise à jour habilitation:', req.params.id, req.body);
+    
+    await Habilitation.update(req.params.id, req.body);
+    res.redirect('/rh/habilitations?success=Habilitation modifiée avec succès');
+  } catch (err) {
+    console.error('Erreur modification habilitation:', err);
+    res.redirect('/rh/habilitations?error=Erreur lors de la modification');
+  }
+});
+
+// Supprimer habilitation (désactiver)
+router.post('/habilitations/:id/delete', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .query('UPDATE Habilitations SET statut = \'Inactive\' WHERE id = @id');
+    
+    res.json({ success: true, message: 'Habilitation supprimée' });
+  } catch (err) {
+    console.error('Erreur suppression habilitation:', err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la suppression' });
   }
 });
 
@@ -404,6 +588,45 @@ router.get('/habilitations/personnel/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Valider participation
+// ==================== REMPLACER dans routes/rh.js ====================
+// Remplacer la route POST '/formations/valider/:inscriptionId' existante par celle-ci
+
+// Valider participation (CORRIGÉ)
+router.post('/formations/valider/:inscriptionId', async (req, res) => {
+  try {
+    const inscriptionId = req.params.inscriptionId;
+    const { note_evaluation, certificat_obtenu } = req.body;
+    
+    console.log('Validation demandée pour:', {
+      inscriptionId,
+      note_evaluation,
+      certificat_obtenu
+    });
+
+    await Formation.validerParticipation(
+      inscriptionId, 
+      note_evaluation, 
+      certificat_obtenu
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'Participation validée avec succès' 
+    });
+  } catch (err) {
+    console.error('Erreur validation participation:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erreur lors de la validation',
+      error: err.message 
+    });
+  }
+});
+
+
+
+
 
 // ========== ÉVALUATIONS ==========
 
@@ -422,7 +645,10 @@ router.get('/evaluations', async (req, res) => {
       LEFT JOIN Personnel ev ON e.evaluateur_id = ev.id
       ORDER BY e.date_evaluation DESC
     `);
-    res.render('rh/evaluations-list', { evaluations: result.recordset });
+    res.render('rh/evaluations-list', { 
+      evaluations: result.recordset,
+      currentPage: 'evaluations'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -435,7 +661,11 @@ router.get('/evaluations/add', async (req, res) => {
     const personnel = await pool.request().query(
       'SELECT id, prenom, nom, type_personnel FROM Personnel WHERE statut = \'Actif\' ORDER BY nom'
     );
-    res.render('rh/evaluations-form', { evaluation: null, personnel: personnel.recordset });
+    res.render('rh/evaluations-form', { 
+      evaluation: null, 
+      personnel: personnel.recordset,
+      currentPage: 'evaluations'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -468,7 +698,10 @@ router.get('/besoins-formation', async (req, res) => {
       LEFT JOIN Personnel d ON bf.demandeur_id = d.id
       ORDER BY bf.date_demande DESC
     `);
-    res.render('rh/besoins-formation-list', { besoins: result.recordset });
+    res.render('rh/besoins-formation-list', { 
+      besoins: result.recordset,
+      currentPage: 'formations'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -481,7 +714,10 @@ router.get('/besoins-formation/add', async (req, res) => {
     const personnel = await pool.request().query(
       'SELECT id, prenom, nom FROM Personnel WHERE statut = \'Actif\' ORDER BY nom'
     );
-    res.render('rh/besoins-formation-form', { personnel: personnel.recordset });
+    res.render('rh/besoins-formation-form', { 
+      personnel: personnel.recordset,
+      currentPage: 'formations'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
@@ -507,70 +743,11 @@ router.post('/besoins-formation/create', async (req, res) => {
   }
 });
 
-// ========== RECRUTEMENTS ==========
-
-// Liste des recrutements
-router.get('/recrutements', async (req, res) => {
-  try {
-    const pool = await getConnection();
-    const result = await pool.request().query(`
-      SELECT 
-        r.*,
-        p.titre as poste_titre,
-        d.nom as departement_nom
-      FROM Recrutements r
-      INNER JOIN Postes p ON r.poste_id = p.id
-      LEFT JOIN Departements d ON p.departement_id = d.id
-      ORDER BY r.date_ouverture DESC
-    `);
-    res.render('rh/recrutements-list', { recrutements: result.recordset });
-  } catch (err) {
-    res.status(500).send('Erreur: ' + err.message);
-  }
-});
-
-// Formulaire nouveau recrutement
-router.get('/recrutements/add', async (req, res) => {
-  try {
-    const postes = await Poste.getAll();
-    res.render('rh/recrutements-form', { recrutement: null, postes });
-  } catch (err) {
-    res.status(500).send('Erreur: ' + err.message);
-  }
-});
-
-// Créer recrutement
-router.post('/recrutements/create', async (req, res) => {
-  try {
-    const pool = await getConnection();
-    await pool.request()
-      .input('reference', sql.VarChar, req.body.reference)
-      .input('poste_id', sql.Int, req.body.poste_id)
-      .input('type_recrutement', sql.VarChar, req.body.type_recrutement)
-      .input('nombre_postes', sql.Int, req.body.nombre_postes || 1)
-      .input('date_ouverture', sql.Date, req.body.date_ouverture)
-      .input('date_cloture', sql.Date, req.body.date_cloture || null)
-      .input('description', sql.Text, req.body.description)
-      .input('exigences', sql.Text, req.body.exigences)
-      .input('demandeur_id', sql.Int, req.body.demandeur_id)
-      .query(`
-        INSERT INTO Recrutements (reference, poste_id, type_recrutement, nombre_postes, 
-                                  date_ouverture, date_cloture, description, exigences, demandeur_id)
-        VALUES (@reference, @poste_id, @type_recrutement, @nombre_postes,
-                @date_ouverture, @date_cloture, @description, @exigences, @demandeur_id)
-      `);
-    res.redirect('/rh/recrutements');
-  } catch (err) {
-    res.status(500).send('Erreur: ' + err.message);
-  }
-});
-
 // ========== DASHBOARD RH ==========
 router.get('/dashboard', async (req, res) => {
   try {
     const pool = await getConnection();
     
-    // Statistiques générales
     const stats = await pool.request().query(`
       SELECT 
         (SELECT COUNT(*) FROM Postes WHERE statut = 'Actif') as total_postes,
@@ -581,16 +758,14 @@ router.get('/dashboard', async (req, res) => {
         (SELECT COUNT(*) FROM BesoinsFormation WHERE statut = 'En attente') as besoins_en_attente
     `);
     
-    res.render('rh/dashboard', { stats: stats.recordset[0] });
+    res.render('rh/dashboard', { 
+      stats: stats.recordset[0],
+      currentPage: 'rh-dashboard'
+    });
   } catch (err) {
     res.status(500).send('Erreur: ' + err.message);
   }
 });
-
-
-// ==================== À ajouter dans routes/rh.js ====================
-
-
 
 // ============ COMPÉTENCES ============
 
@@ -688,7 +863,6 @@ router.get('/competences/:id', async (req, res) => {
   try {
     const competence = await Competence.getById(req.params.id);
     
-    // Récupérer les personnels ayant cette compétence
     const pool = await getConnection();
     const personnels = await pool.request()
       .input('competenceId', sql.Int, req.params.id)
@@ -732,6 +906,604 @@ router.post('/competences/affecter-poste', async (req, res) => {
   } catch (err) {
     console.error('Erreur affectation compétence poste:', err);
     res.status(500).json({ success: false, message: 'Erreur lors de l\'affectation' });
+  }
+});
+
+// ==================== À AJOUTER dans routes/rh.js ====================
+// APRÈS la route router.get('/formations/add', ...)
+
+// Éditer formation
+router.get('/formations/edit/:id', async (req, res) => {
+  try {
+    const formation = await Formation.getById(req.params.id);
+    res.render('rh/formations-form', { 
+      formation,
+      currentPage: 'formations'
+    });
+  } catch (err) {
+    console.error('Erreur édition formation:', err);
+    res.redirect('/rh/formations');
+  }
+});
+
+// Mettre à jour formation
+router.post('/formations/update/:id', async (req, res) => {
+  try {
+    await Formation.update(req.params.id, req.body);
+    res.redirect('/rh/formations?success=Formation modifiée avec succès');
+  } catch (err) {
+    console.error('Erreur modification formation:', err);
+    res.redirect('/rh/formations?error=Erreur lors de la modification');
+  }
+});
+
+// Supprimer formation
+router.post('/formations/:id/delete', async (req, res) => {
+  try {
+    await Formation.delete(req.params.id);
+    res.json({ success: true, message: 'Formation supprimée' });
+  } catch (err) {
+    console.error('Erreur suppression formation:', err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la suppression' });
+  }
+});
+
+// ==================== Section HABILITATIONS dans routes/rh.js ====================
+// REMPLACEZ TOUTE LA SECTION HABILITATIONS par ce code propre
+
+// ========== HABILITATIONS ==========
+
+// Liste des habilitations
+router.get('/habilitations', async (req, res) => {
+  try {
+    const habilitations = await Habilitation.getAll();
+    const aRenouveler = await Habilitation.getARenouveler(90);
+    
+    res.render('rh/habilitations-list', { 
+      habilitations,
+      aRenouveler,
+      currentPage: 'habilitations'
+    });
+  } catch (err) {
+    console.error('Erreur liste habilitations:', err);
+    res.status(500).send('Erreur: ' + err.message);
+  }
+});
+
+// Formulaire ajout habilitation
+router.get('/habilitations/add', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const personnel = await pool.request().query(
+      'SELECT id, prenom, nom, type_personnel FROM Personnel WHERE statut = \'Actif\' ORDER BY nom'
+    );
+    const formations = await pool.request().query(
+      'SELECT id, titre FROM Formations ORDER BY titre'
+    );
+    
+    res.render('rh/habilitations-form', { 
+      habilitation: null, 
+      personnel: personnel.recordset,
+      formations: formations.recordset,
+      currentPage: 'habilitations'
+    });
+  } catch (err) {
+    console.error('Erreur formulaire habilitation:', err);
+    res.status(500).send('Erreur: ' + err.message);
+  }
+});
+
+// Créer habilitation
+router.post('/habilitations/create', async (req, res) => {
+  try {
+    console.log('===== DEBUG HABILITATION =====');
+    console.log('req.body:', req.body);
+    console.log('req.body type:', typeof req.body);
+    console.log('req.body keys:', Object.keys(req.body));
+    console.log('============================');
+    
+    // Validation
+    if (!req.body.personnel_id || !req.body.type_habilitation || !req.body.date_obtention) {
+      console.error('Champs requis manquants');
+      console.error('Reçu:', {
+        personnel_id: req.body.personnel_id,
+        type_habilitation: req.body.type_habilitation,
+        date_obtention: req.body.date_obtention
+      });
+      return res.status(400).send('Champs requis manquants');
+    }
+    
+    const habilitationId = await Habilitation.create(req.body);
+    console.log('Habilitation créée avec ID:', habilitationId);
+    
+    res.redirect('/rh/habilitations?success=Habilitation créée avec succès');
+  } catch (err) {
+    console.error('Erreur création habilitation:', err);
+    res.status(500).send('Erreur: ' + err.message);
+  }
+});
+
+// Formulaire édition habilitation
+router.get('/habilitations/edit/:id', async (req, res) => {
+  try {
+    const habilitation = await Habilitation.getById(req.params.id);
+    
+    if (!habilitation) {
+      return res.status(404).send('Habilitation non trouvée');
+    }
+    
+    const pool = await getConnection();
+    const personnel = await pool.request().query(
+      'SELECT id, prenom, nom, type_personnel FROM Personnel WHERE statut = \'Actif\' ORDER BY nom'
+    );
+    
+    const formations = await pool.request().query(
+      'SELECT id, titre FROM Formations ORDER BY titre'
+    );
+    
+    res.render('rh/habilitations-form', { 
+      habilitation,
+      personnel: personnel.recordset,
+      formations: formations.recordset,
+      currentPage: 'habilitations'
+    });
+  } catch (err) {
+    console.error('Erreur édition habilitation:', err);
+    res.redirect('/rh/habilitations');
+  }
+});
+
+// Mettre à jour habilitation
+router.post('/habilitations/update/:id', async (req, res) => {
+  try {
+    console.log('Mise à jour habilitation:', req.params.id, req.body);
+    
+    await Habilitation.update(req.params.id, req.body);
+    res.redirect('/rh/habilitations?success=Habilitation modifiée avec succès');
+  } catch (err) {
+    console.error('Erreur modification habilitation:', err);
+    res.redirect('/rh/habilitations?error=Erreur lors de la modification');
+  }
+});
+
+// Supprimer habilitation
+router.post('/habilitations/:id/delete', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .query('UPDATE Habilitations SET statut = \'Inactive\' WHERE id = @id');
+    
+    res.json({ success: true, message: 'Habilitation supprimée' });
+  } catch (err) {
+    console.error('Erreur suppression habilitation:', err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la suppression' });
+  }
+});
+
+// Habilitations par personnel (API)
+router.get('/habilitations/personnel/:id', async (req, res) => {
+  try {
+    const habilitations = await Habilitation.getByPersonnel(req.params.id);
+    res.json(habilitations);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+// ========== À MODIFIER dans la section COMPÉTENCES ==========
+// Remplacer le middleware pour vérifier les permissions
+
+// Liste des compétences (MODIFIÉ)
+router.get('/competences', async (req, res) => {
+  try {
+    const competences = await Competence.getAll();
+    const categories = await Competence.getCategories();
+    const statistiques = await Competence.getStatistiques();
+
+    res.render('rh/competences/list', {
+      competences,
+      categories,
+      statistiques,
+      canManage: true, // À adapter selon vos permissions
+      currentPage: 'competences'
+    });
+  } catch (err) {
+    console.error('Erreur liste compétences:', err);
+    res.status(500).render('error', {
+      title: 'Erreur',
+      message: 'Impossible de charger les compétences',
+      error: err,
+      currentPage: 'competences'
+    });
+  }
+});
+
+
+// ==================== À AJOUTER dans routes/rh.js ====================
+// AJOUTER CETTE ROUTE AVANT la route '/habilitations/personnel/:id'
+// Pour éviter les conflits, les routes API doivent être placées en premier
+
+// API: Détails d'une habilitation (NOUVELLE ROUTE)
+router.get('/habilitations/api/:id', async (req, res) => {
+  try {
+    const habilitationId = req.params.id;
+    
+    // Récupérer les détails de l'habilitation
+    const habilitation = await Habilitation.getById(habilitationId);
+    
+    if (!habilitation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Habilitation non trouvée'
+      });
+    }
+
+    res.json({
+      success: true,
+      habilitation: habilitation
+    });
+  } catch (err) {
+    console.error('Erreur API habilitation:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+// Habilitations par personnel (API) - GARDER CETTE ROUTE APRÈS
+router.get('/habilitations/personnel/:id', async (req, res) => {
+  try {
+    const habilitations = await Habilitation.getByPersonnel(req.params.id);
+    res.json(habilitations);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==================== À AJOUTER dans routes/rh.js ====================
+// PLACER CETTE ROUTE AVANT les autres routes d'évaluations
+// (avant router.get('/evaluations', ...))
+
+// API: Détails d'une évaluation (NOUVELLE ROUTE - CRITIQUE)
+router.get('/evaluations/api/:id', async (req, res) => {
+  try {
+    const evaluationId = req.params.id;
+    console.log('API: Récupération évaluation ID:', evaluationId);
+    
+    const pool = await getConnection();
+    const result = await pool.request()
+      .input('id', sql.Int, evaluationId)
+      .query(`
+        SELECT 
+          e.*,
+          CONCAT(p.prenom, ' ', p.nom) as personnel_nom,
+          p.type_personnel,
+          p.matricule,
+          CONCAT(ev.prenom, ' ', ev.nom) as evaluateur_nom,
+          ev.type_personnel as evaluateur_type,
+          CONCAT(val.prenom, ' ', val.nom) as validateur_nom
+        FROM Evaluations e
+        INNER JOIN Personnel p ON e.personnel_id = p.id
+        LEFT JOIN Personnel ev ON e.evaluateur_id = ev.id
+        LEFT JOIN Personnel val ON e.validateur_id = val.id
+        WHERE e.id = @id
+      `);
+    
+    if (result.recordset.length === 0) {
+      console.log('Évaluation non trouvée pour ID:', evaluationId);
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Évaluation non trouvée' 
+      });
+    }
+    
+    const evaluation = result.recordset[0];
+    console.log('Évaluation trouvée:', evaluation.id);
+    
+    res.json({ 
+      success: true, 
+      evaluation: evaluation 
+    });
+  } catch (err) {
+    console.error('Erreur API évaluation:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erreur lors de la récupération',
+      error: err.message 
+    });
+  }
+});
+
+// ========== ÉVALUATIONS (routes existantes) ==========
+
+// Liste des évaluations
+router.get('/evaluations', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const result = await pool.request().query(`
+      SELECT 
+        e.*,
+        CONCAT(p.prenom, ' ', p.nom) as personnel_nom,
+        p.type_personnel,
+        CONCAT(ev.prenom, ' ', ev.nom) as evaluateur_nom
+      FROM Evaluations e
+      INNER JOIN Personnel p ON e.personnel_id = p.id
+      LEFT JOIN Personnel ev ON e.evaluateur_id = ev.id
+      ORDER BY e.date_evaluation DESC
+    `);
+    res.render('rh/evaluations-list', { 
+      evaluations: result.recordset,
+      currentPage: 'evaluations'
+    });
+  } catch (err) {
+    console.error('Erreur liste évaluations:', err);
+    res.status(500).send('Erreur: ' + err.message);
+  }
+});
+
+// Formulaire ajout évaluation
+router.get('/evaluations/add', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const personnel = await pool.request().query(
+      'SELECT id, prenom, nom, type_personnel FROM Personnel WHERE statut = \'Actif\' ORDER BY nom'
+    );
+    res.render('rh/evaluations-form', { 
+      evaluation: null, 
+      personnel: personnel.recordset,
+      currentPage: 'evaluations'
+    });
+  } catch (err) {
+    console.error('Erreur form évaluation:', err);
+    res.status(500).send('Erreur: ' + err.message);
+  }
+});
+
+// Créer évaluation
+router.post('/evaluations/create', async (req, res) => {
+  try {
+    await Evaluation.create(req.body);
+    res.redirect('/rh/evaluations?success=Évaluation créée avec succès');
+  } catch (err) {
+    console.error('Erreur création évaluation:', err);
+    res.redirect('/rh/evaluations?error=Erreur lors de la création');
+  }
+});
+
+// ==================== À REMPLACER dans routes/rh.js ====================
+// Route: Formulaire édition évaluation (CORRIGÉE)
+
+router.get('/evaluations/edit/:id', async (req, res) => {
+  try {
+    console.log('=== ÉDITION ÉVALUATION ===');
+    console.log('ID demandé:', req.params.id);
+    
+    const pool = await getConnection();
+    
+    // Récupérer l'évaluation avec toutes les infos
+    const evalResult = await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .query(`
+        SELECT 
+          e.*,
+          CONCAT(p.prenom, ' ', p.nom) as personnel_nom,
+          p.type_personnel
+        FROM Evaluations e
+        INNER JOIN Personnel p ON e.personnel_id = p.id
+        WHERE e.id = @id
+      `);
+    
+    console.log('Résultat requête:', evalResult.recordset.length, 'lignes');
+    
+    if (evalResult.recordset.length === 0) {
+      console.log('Évaluation non trouvée');
+      return res.redirect('/rh/evaluations?error=Évaluation non trouvée');
+    }
+    
+    const evaluation = evalResult.recordset[0];
+    console.log('Évaluation trouvée:', {
+      id: evaluation.id,
+      personnel_id: evaluation.personnel_id,
+      type_evaluation: evaluation.type_evaluation,
+      note_globale: evaluation.note_globale
+    });
+    
+    // Récupérer la liste du personnel
+    const personnel = await pool.request().query(
+      'SELECT id, prenom, nom, type_personnel FROM Personnel WHERE statut = \'Actif\' ORDER BY nom'
+    );
+    
+    console.log('Personnel disponible:', personnel.recordset.length, 'personnes');
+    
+    // Rendre la vue avec les données
+    res.render('rh/evaluations-form', { 
+      evaluation: evaluation, 
+      personnel: personnel.recordset,
+      currentPage: 'evaluations'
+    });
+  } catch (err) {
+    console.error('Erreur édition évaluation:', err);
+    console.error('Stack:', err.stack);
+    res.redirect('/rh/evaluations?error=Erreur lors du chargement');
+  }
+});
+
+// Route: Mettre à jour évaluation (CORRIGÉE)
+router.post('/evaluations/update/:id', async (req, res) => {
+  try {
+    console.log('=== MISE À JOUR ÉVALUATION ===');
+    console.log('ID:', req.params.id);
+    console.log('Données reçues:', req.body);
+    
+    const pool = await getConnection();
+    await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .input('personnel_id', sql.Int, req.body.personnel_id)
+      .input('evaluateur_id', sql.Int, req.body.evaluateur_id)
+      .input('type_evaluation', sql.VarChar, req.body.type_evaluation)
+      .input('periode_debut', sql.Date, req.body.periode_debut)
+      .input('periode_fin', sql.Date, req.body.periode_fin)
+      .input('date_evaluation', sql.Date, req.body.date_evaluation)
+      .input('note_globale', sql.Decimal(5,2), req.body.note_globale || null)
+      .input('points_forts', sql.Text, req.body.points_forts || null)
+      .input('points_amelioration', sql.Text, req.body.points_amelioration || null)
+      .input('objectifs', sql.Text, req.body.objectifs || null)
+      .input('commentaires', sql.Text, req.body.commentaires || null)
+      .input('statut', sql.VarChar, req.body.statut || 'En cours')
+      .query(`
+        UPDATE Evaluations SET
+          personnel_id = @personnel_id,
+          evaluateur_id = @evaluateur_id,
+          type_evaluation = @type_evaluation,
+          periode_debut = @periode_debut,
+          periode_fin = @periode_fin,
+          date_evaluation = @date_evaluation,
+          note_globale = @note_globale,
+          points_forts = @points_forts,
+          points_amelioration = @points_amelioration,
+          objectifs = @objectifs,
+          commentaires = @commentaires,
+          statut = @statut
+        WHERE id = @id
+      `);
+    
+    console.log('Évaluation mise à jour avec succès');
+    res.redirect('/rh/evaluations?success=Évaluation modifiée avec succès');
+  } catch (err) {
+    console.error('Erreur modification évaluation:', err);
+    console.error('Stack:', err.stack);
+    res.redirect('/rh/evaluations?error=Erreur lors de la modification');
+  }
+});
+
+// Mettre à jour évaluation
+router.post('/evaluations/update/:id', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .input('type_evaluation', sql.VarChar, req.body.type_evaluation)
+      .input('periode_debut', sql.Date, req.body.periode_debut)
+      .input('periode_fin', sql.Date, req.body.periode_fin)
+      .input('date_evaluation', sql.Date, req.body.date_evaluation)
+      .input('note_globale', sql.Decimal(5,2), req.body.note_globale || null)
+      .input('points_forts', sql.Text, req.body.points_forts || null)
+      .input('points_amelioration', sql.Text, req.body.points_amelioration || null)
+      .input('objectifs', sql.Text, req.body.objectifs || null)
+      .input('commentaires', sql.Text, req.body.commentaires || null)
+      .input('statut', sql.VarChar, req.body.statut || 'En cours')
+      .query(`
+        UPDATE Evaluations SET
+          type_evaluation = @type_evaluation,
+          periode_debut = @periode_debut,
+          periode_fin = @periode_fin,
+          date_evaluation = @date_evaluation,
+          note_globale = @note_globale,
+          points_forts = @points_forts,
+          points_amelioration = @points_amelioration,
+          objectifs = @objectifs,
+          commentaires = @commentaires,
+          statut = @statut
+        WHERE id = @id
+      `);
+    
+    res.redirect('/rh/evaluations?success=Évaluation modifiée avec succès');
+  } catch (err) {
+    console.error('Erreur modification évaluation:', err);
+    res.redirect('/rh/evaluations?error=Erreur lors de la modification');
+  }
+});
+
+// Supprimer évaluation
+router.post('/evaluations/:id/delete', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .query('DELETE FROM Evaluations WHERE id = @id');
+    
+    res.json({ success: true, message: 'Évaluation supprimée' });
+  } catch (err) {
+    console.error('Erreur suppression évaluation:', err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la suppression' });
+  }
+});
+
+// Changer statut évaluation
+router.post('/evaluations/:id/statut', async (req, res) => {
+  try {
+    const { statut } = req.body;
+    const pool = await getConnection();
+    
+    let query = 'UPDATE Evaluations SET statut = @statut';
+    const request = pool.request()
+      .input('id', sql.Int, req.params.id)
+      .input('statut', sql.VarChar, statut);
+    
+    // Si validation, enregistrer le validateur
+    if (statut === 'Validée' && req.session.personnelId) {
+      query += ', validateur_id = @validateur_id, date_validation = GETDATE()';
+      request.input('validateur_id', sql.Int, req.session.personnelId);
+    }
+    
+    query += ' WHERE id = @id';
+    
+    await request.query(query);
+    
+    res.json({ success: true, message: 'Statut modifié avec succès' });
+  } catch (err) {
+    console.error('Erreur changement statut:', err);
+    res.status(500).json({ success: false, message: 'Erreur lors du changement de statut' });
+  }
+});
+
+// Route d'impression d'une évaluation
+router.get('/evaluations/print/:id', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const result = await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .query(`
+        SELECT 
+          e.*,
+          CONCAT(p.prenom, ' ', p.nom) as personnel_nom,
+          p.type_personnel,
+          p.matricule,
+          CONCAT(ev.prenom, ' ', ev.nom) as evaluateur_nom,
+          CONCAT(val.prenom, ' ', val.nom) as validateur_nom
+        FROM Evaluations e
+        INNER JOIN Personnel p ON e.personnel_id = p.id
+        LEFT JOIN Personnel ev ON e.evaluateur_id = ev.id
+        LEFT JOIN Personnel val ON e.validateur_id = val.id
+        WHERE e.id = @id
+      `);
+    
+    if (result.recordset.length === 0) {
+      return res.status(404).send('Évaluation non trouvée');
+    }
+    
+    res.render('rh/evaluations-print', { 
+      evaluation: result.recordset[0],
+      currentPage: 'evaluations'
+    });
+  } catch (err) {
+    console.error('Erreur impression évaluation:', err);
+    res.status(500).send('Erreur: ' + err.message);
+  }
+});
+
+// Évaluations par personnel
+router.get('/evaluations/personnel/:id', async (req, res) => {
+  try {
+    const evaluations = await Evaluation.getByPersonnel(req.params.id);
+    res.json({ success: true, evaluations });
+  } catch (err) {
+    console.error('Erreur évaluations personnel:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

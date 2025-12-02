@@ -1,0 +1,105 @@
+<!-- ==================== views/rh/postes-form.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= poste ? 'Modifier' : 'Créer' %> Poste</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+ <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+       <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    
+    <div class="main-content">
+        <div class="container-fluid px-4 py-4">
+            <h2 class="mb-4">
+                <%= poste ? 'Modifier' : 'Créer' %> un Poste / Fonction
+            </h2>
+
+            <form method="POST" action="/rh/postes/<%= poste ? 'update/' + poste.id : 'create' %>">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Informations Générales</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Code <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="code" 
+                                       value="<%= poste ? poste.code : '' %>" 
+                                       <%= poste ? 'readonly' : '' %> required>
+                                <small class="text-muted">Ex: BIO-RESP, TECH-HEMA</small>
+                            </div>
+                            <div class="col-md-9">
+                                <label class="form-label">Titre du Poste <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="titre" 
+                                       value="<%= poste ? poste.titre : '' %>" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Département <span class="text-danger">*</span></label>
+                                <select class="form-select" name="departement_id" required>
+                                    <option value="">Sélectionner...</option>
+                                    <% departements.forEach(dept => { %>
+                                    <option value="<%= dept.id %>" 
+                                            <%= poste && poste.departement_id === dept.id ? 'selected' : '' %>>
+                                        <%= dept.nom %>
+                                    </option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Niveau <span class="text-danger">*</span></label>
+                                <select class="form-select" name="niveau" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="Cadre" <%= poste && poste.niveau === 'Cadre' ? 'selected' : '' %>>Cadre</option>
+                                    <option value="Biologiste" <%= poste && poste.niveau === 'Biologiste' ? 'selected' : '' %>>Biologiste</option>
+                                    <option value="Technicien" <%= poste && poste.niveau === 'Technicien' ? 'selected' : '' %>>Technicien</option>
+                                    <option value="Support" <%= poste && poste.niveau === 'Support' ? 'selected' : '' %>>Support</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Nombre de Postes</label>
+                                <input type="number" class="form-control" name="nb_postes_disponibles" 
+                                       value="<%= poste ? poste.nb_postes_disponibles : 1 %>" min="1">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Description du Poste</label>
+                                <textarea class="form-control" name="description" rows="4"><%= poste ? poste.description || '' : '' %></textarea>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Compétences Requises</label>
+                                <textarea class="form-control" name="competences_requises" rows="4"><%= poste ? poste.competences_requises || '' : '' %></textarea>
+                                <small class="text-muted">Une compétence par ligne</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-2"></i> Enregistrer
+                    </button>
+                    <a href="/rh/postes" class="btn btn-secondary">
+                        <i class="bi bi-x-circle me-2"></i> Annuler
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

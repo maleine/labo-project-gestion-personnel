@@ -1,0 +1,623 @@
+<!-- ==================== views/dashboard.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord - Lab Personnel Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --purple: #6c5b7b;
+            --teal: #00bfa5;
+            --olive: #8b9556;
+            --orange: #ff7043;
+            --sidebar-width: 260px;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            overflow-x: hidden;
+        }
+
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .page-header {
+            background: linear-gradient(135deg, var(--purple) 0%, var(--teal) 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(108, 91, 123, 0.2);
+        }
+
+        .page-header h2 {
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .page-header .breadcrumb {
+            background: transparent;
+            margin: 0;
+            padding: 0;
+        }
+
+        .page-header .breadcrumb-item,
+        .page-header .breadcrumb-item a {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .page-header .breadcrumb-item.active {
+            color: white;
+        }
+
+        /* Stats Cards */
+        .card-stats {
+            border: none;
+            border-radius: 12px;
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            height: 100%;
+        }
+
+        .card-stats:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .card-biologistes { border-left-color: var(--purple); background: linear-gradient(135deg, #fff 0%, #f8f5fb 100%); }
+        .card-techniciens { border-left-color: var(--olive); background: linear-gradient(135deg, #fff 0%, #f8f9f5 100%); }
+        .card-cadres { border-left-color: var(--teal); background: linear-gradient(135deg, #fff 0%, #f0fffe 100%); }
+        .card-total { border-left-color: var(--orange); background: linear-gradient(135deg, #fff 0%, #fff5f3 100%); }
+
+        .card-stats .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .icon-biologistes { background: rgba(108, 91, 123, 0.1); color: var(--purple); }
+        .icon-techniciens { background: rgba(139, 149, 86, 0.1); color: var(--olive); }
+        .icon-cadres { background: rgba(0, 191, 165, 0.1); color: var(--teal); }
+        .icon-total { background: rgba(255, 112, 67, 0.1); color: var(--orange); }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #212529;
+            margin: 8px 0;
+        }
+
+        .stat-trend {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .stat-trend.up { color: #28a745; }
+        .stat-trend.down { color: #dc3545; }
+
+        /* Cards générales */
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            border-radius: 12px 12px 0 0 !important;
+            padding: 20px;
+        }
+
+        .card-header h5 {
+            margin: 0;
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Quick Actions */
+        .quick-action-btn {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-radius: 10px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: 2px solid;
+            margin-bottom: 12px;
+        }
+
+        .quick-action-btn:hover {
+            transform: translateX(5px);
+        }
+
+        .quick-action-btn i {
+            font-size: 24px;
+            margin-right: 15px;
+        }
+
+        .action-primary {
+            background: rgba(108, 91, 123, 0.05);
+            border-color: var(--purple);
+            color: var(--purple);
+        }
+
+        .action-primary:hover {
+            background: var(--purple);
+            color: white;
+        }
+
+        .action-success {
+            background: rgba(0, 191, 165, 0.05);
+            border-color: var(--teal);
+            color: var(--teal);
+        }
+
+        .action-success:hover {
+            background: var(--teal);
+            color: white;
+        }
+
+        .action-info {
+            background: rgba(255, 112, 67, 0.05);
+            border-color: var(--orange);
+            color: var(--orange);
+        }
+
+        .action-info:hover {
+            background: var(--orange);
+            color: white;
+        }
+
+        /* Recent Activity */
+        .activity-item {
+            padding: 15px 0;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: start;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.success { background: rgba(40, 167, 69, 0.1); color: #28a745; }
+        .activity-icon.info { background: rgba(0, 191, 165, 0.1); color: var(--teal); }
+        .activity-icon.warning { background: rgba(255, 193, 7, 0.1); color: #ffc107; }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .activity-text {
+            font-size: 14px;
+            color: #212529;
+            margin: 0;
+        }
+
+        /* Department Cards */
+        .dept-card {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            height: 100%;
+            background: white;
+        }
+
+        .dept-card:hover {
+            border-color: var(--purple);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(108, 91, 123, 0.15);
+        }
+
+        .dept-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .dept-name i {
+            margin-right: 8px;
+        }
+
+        .dept-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .dept-personnel {
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        .dept-count {
+            font-size: 20px;
+            font-weight: 700;
+            color: #212529;
+        }
+
+        .progress {
+            height: 6px;
+            border-radius: 10px;
+            overflow: visible;
+        }
+
+        .progress-bar {
+            border-radius: 10px;
+            position: relative;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+
+            .page-header {
+                padding: 20px;
+            }
+
+            .stat-value {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <%- include('partials/sidebar', { currentPage: 'dashboard' }) %>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="bi bi-speedometer2 me-2"></i>Tableau de Bord</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0 mt-2">
+                            <li class="breadcrumb-item active">Accueil</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="text-end">
+                    <div class="text-white-50" style="font-size: 14px;">
+                        <i class="bi bi-calendar3 me-1"></i>
+                        <%= new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-stats card-biologistes">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="stat-label">Biologistes</div>
+                                <div class="stat-value"><%= typeof stats !== 'undefined' ? stats.biologistes : 24 %></div>
+                                <div class="stat-trend up">
+                                    <i class="bi bi-arrow-up"></i> +2 ce mois
+                                </div>
+                            </div>
+                            <div class="stat-icon icon-biologistes">
+                                <i class="bi bi-mortarboard"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-stats card-techniciens">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="stat-label">Techniciens</div>
+                                <div class="stat-value"><%= typeof stats !== 'undefined' ? stats.techniciens : 42 %></div>
+                                <div class="stat-trend up">
+                                    <i class="bi bi-arrow-up"></i> +5 ce mois
+                                </div>
+                            </div>
+                            <div class="stat-icon icon-techniciens">
+                                <i class="bi bi-tools"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-stats card-cadres">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="stat-label">Cadres</div>
+                                <div class="stat-value"><%= typeof stats !== 'undefined' ? stats.cadres : 8 %></div>
+                                <div class="stat-trend">
+                                    <i class="bi bi-dash"></i> Stable
+                                </div>
+                            </div>
+                            <div class="stat-icon icon-cadres">
+                                <i class="bi bi-person-badge"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-stats card-total">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="stat-label">Total Personnel</div>
+                                <div class="stat-value"><%= typeof stats !== 'undefined' ? stats.total : 74 %></div>
+                                <div class="stat-trend up">
+                                    <i class="bi bi-arrow-up"></i> +7 ce mois
+                                </div>
+                            </div>
+                            <div class="stat-icon icon-total">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Recent Activity -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-lightning-charge me-2"></i>Actions Rapides</h5>
+                    </div>
+                    <div class="card-body">
+                        <a href="/personnel/add" class="quick-action-btn action-primary">
+                            <i class="bi bi-person-plus-fill"></i>
+                            <div>
+                                <strong>Ajouter un Employé</strong>
+                                <div style="font-size: 13px; opacity: 0.8;">Créer un nouveau profil personnel</div>
+                            </div>
+                        </a>
+                        <a href="/rh/formations" class="quick-action-btn action-success">
+                            <i class="bi bi-mortarboard-fill"></i>
+                            <div>
+                                <strong>Gérer les Formations</strong>
+                                <div style="font-size: 13px; opacity: 0.8;">Planifier et suivre les formations</div>
+                            </div>
+                        </a>
+                        <a href="/absences/demandes" class="quick-action-btn action-info">
+                            <i class="bi bi-calendar-check-fill"></i>
+                            <div>
+                                <strong>Demandes d'Absence</strong>
+                                <div style="font-size: 13px; opacity: 0.8;">Consulter les demandes en attente</div>
+                            </div>
+                        </a>
+                        <a href="/exports" class="quick-action-btn action-info">
+                            <i class="bi bi-file-earmark-pdf-fill"></i>
+                            <div>
+                                <strong>Générer des Rapports</strong>
+                                <div style="font-size: 13px; opacity: 0.8;">Exporter des documents PDF</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-clock-history me-2"></i>Activités Récentes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="activity-item">
+                            <div class="activity-icon success">
+                                <i class="bi bi-person-check"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-time">Il y a 2 heures</div>
+                                <p class="activity-text">
+                                    <strong>Nouvel employé ajouté:</strong> Dr. Amadou Diop
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="activity-item">
+                            <div class="activity-icon info">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-time">Hier à 14:30</div>
+                                <p class="activity-text">
+                                    <strong>Formation complétée:</strong> Habilitation POCT - 5 participants
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="activity-item">
+                            <div class="activity-icon warning">
+                                <i class="bi bi-calendar-event"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-time">Il y a 2 jours</div>
+                                <p class="activity-text">
+                                    <strong>Planning garde nuit:</strong> Mise à jour semaine 48
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="activity-item">
+                            <div class="activity-icon success">
+                                <i class="bi bi-file-earmark-check"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-time">Il y a 3 jours</div>
+                                <p class="activity-text">
+                                    <strong>Rapport généré:</strong> Statistiques RH - Novembre 2024
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Departments Overview -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-building me-2"></i>Vue d'Ensemble des Départements</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-lg-4 col-md-6">
+                        <div class="dept-card">
+                            <div class="dept-name text-primary">
+                                <i class="bi bi-clipboard-pulse"></i> Biologie Délocalisée
+                            </div>
+                            <div class="dept-stats">
+                                <span class="dept-personnel">Personnel actif</span>
+                                <span class="dept-count">12</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-primary" style="width: 75%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <div class="dept-card">
+                            <div class="dept-name text-success">
+                                <i class="bi bi-droplet"></i> Biochimie
+                            </div>
+                            <div class="dept-stats">
+                                <span class="dept-personnel">Personnel actif</span>
+                                <span class="dept-count">15</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" style="width: 85%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <div class="dept-card">
+                            <div class="dept-name text-info">
+                                <i class="bi bi-eyedropper"></i> Hématologie
+                            </div>
+                            <div class="dept-stats">
+                                <span class="dept-personnel">Personnel actif</span>
+                                <span class="dept-count">10</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-info" style="width: 60%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <div class="dept-card">
+                            <div class="dept-name text-warning">
+                                <i class="bi bi-virus"></i> Microbiologie
+                            </div>
+                            <div class="dept-stats">
+                                <span class="dept-personnel">Personnel actif</span>
+                                <span class="dept-count">18</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-warning" style="width: 90%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <div class="dept-card">
+                            <div class="dept-name text-danger">
+                                <i class="bi bi-shield-check"></i> Immuno-Séro-Électro
+                            </div>
+                            <div class="dept-stats">
+                                <span class="dept-personnel">Personnel actif</span>
+                                <span class="dept-count">9</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-danger" style="width: 55%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6">
+                        <div class="dept-card">
+                            <div class="dept-name text-secondary">
+                                <i class="bi bi-moon-stars"></i> Garde de Nuit
+                            </div>
+                            <div class="dept-stats">
+                                <span class="dept-personnel">Personnel actif</span>
+                                <span class="dept-count">10</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-secondary" style="width: 65%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

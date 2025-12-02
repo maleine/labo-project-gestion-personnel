@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anomalies Présence - Lab Solutions</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        
+        .anomaly-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            border-left: 5px solid;
+            transition: all 0.3s;
+        }
+        
+        .anomaly-card:hover {
+            margin-left: 5px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+        
+        .anomaly-card.critique {
+            border-left-color: #dc3545;
+            background: rgba(220, 53, 69, 0.02);
+        }
+        
+        .anomaly-card.majeure {
+            border-left-color: #fd7e14;
+            background: rgba(253, 126, 20, 0.02);
+        }
+        
+        .anomaly-card.mineure {
+            border-left-color: #ffc107;
+            background: rgba(255, 193, 7, 0.02);
+        }
+        
+        .anomaly-card.info {
+            border-left-color: #0dcaf0;
+            background: rgba(13, 202, 240, 0.02);
+        }
+        
+        .filter-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .anomaly-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding-left: 40px;
+            padding-bottom: 30px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 30px;
+            bottom: 0;
+            width: 2px;
+            background: #dee2e6;
+        }
+        
+        .timeline-item:last-child::before {
+            display: none;
+        }
+        
+        .timeline-dot {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .resolution-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+    </style>
+ <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/sidebar') %>
+    
+    <div class="main-content">
+ 
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+           
+
+          
+                <!-- Page Header -->
+                <div class="page-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-2"><i class="bi bi-exclamation-triangle-fill text-warning"></i> Gestion des Anomalies</h2>
+                            <p class="text-muted mb-0">Détectez et corrigez les anomalies de pointage automatiquement</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success" onclick="detecterAnomalies()">
+                                <i class="bi bi-search"></i> Détecter Anomalies
+                            </button>
+                            <button class="btn btn-primary" onclick="exporterAnomalies()">
+                                <i class="bi bi-download"></i> Exporter
+                            </button>
+                            <button class="btn btn-info" onclick="afficherRegles()">
+                                <i class="bi bi-gear"></i> Règles
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Anomalies</div>
+                        <div class="stat-value text-danger"><%= stats.total || 0 %></div>
+                        <small class="text-muted">en attente</small>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Critiques</div>
+                        <div class="stat-value text-danger"><%= stats.critiques || 0 %></div>
+                        <small class="text-danger">Action urgente</small>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Majeures</div>
+                        <div class="stat-value" style="color: #fd7e14;"><%= stats.majeures || 0 %></div>
+                        <small class="text-muted">À traiter</small>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Mineures</div>
+                        <div class="stat-value text-warning"><%= stats.mineures || 0 %></div>
+                        <small class="text-muted">Non prioritaire</small>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Résolues</div>
+                        <div class="stat-value text-success"><%= stats.resolues || 0 %></div>
+                        <small class="text-muted">ce mois-ci</small>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filter-card">
+                    <form method="GET" action="/presence/anomalies">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Période</label>
+                                <select class="form-select" name="periode" onchange="this.form.submit()">
+                                    <option value="today" <%= filters.periode === 'today' ? 'selected' : '' %>>Aujourd'hui</option>
+                                    <option value="week" <%= filters.periode === 'week' ? 'selected' : '' %>>Cette semaine</option>
+                                    <option value="month" <%= filters.periode === 'month' ? 'selected' : '' %>>Ce mois</option>
+                                    <option value="all" <%= filters.periode === 'all' ? 'selected' : '' %>>Tout</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Gravité</label>
+                                <select class="form-select" name="gravite" onchange="this.form.submit()">
+                                    <option value="">Toutes</option>
+                                    <option value="critique" <%= filters.gravite === 'critique' ? 'selected' : '' %>>Critiques</option>
+                                    <option value="majeure" <%= filters.gravite === 'majeure' ? 'selected' : '' %>>Majeures</option>
+                                    <option value="mineure" <%= filters.gravite === 'mineure' ? 'selected' : '' %>>Mineures</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Type</label>
+                                <select class="form-select" name="type" onchange="this.form.submit()">
+                                    <option value="">Tous</option>
+                                    <option value="absence" <%= filters.type === 'absence' ? 'selected' : '' %>>Absence non justifiée</option>
+                                    <option value="retard" <%= filters.type === 'retard' ? 'selected' : '' %>>Retard</option>
+                                    <option value="depart" <%= filters.type === 'depart' ? 'selected' : '' %>>Départ anticipé</option>
+                                    <option value="oubli" <%= filters.type === 'oubli' ? 'selected' : '' %>>Oubli pointage</option>
+                                    <option value="doublon" <%= filters.type === 'doublon' ? 'selected' : '' %>>Pointage doublon</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Statut</label>
+                                <select class="form-select" name="statut" onchange="this.form.submit()">
+                                    <option value="en_attente" <%= filters.statut === 'en_attente' ? 'selected' : '' %>>En attente</option>
+                                    <option value="en_cours" <%= filters.statut === 'en_cours' ? 'selected' : '' %>>En cours</option>
+                                    <option value="resolue" <%= filters.statut === 'resolue' ? 'selected' : '' %>>Résolue</option>
+                                    <option value="ignoree" <%= filters.statut === 'ignoree' ? 'selected' : '' %>>Ignorée</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Anomalies List -->
+                <div id="anomaliesList">
+                    <% if (anomalies && anomalies.length > 0) { %>
+                        <% anomalies.forEach(anomalie => { %>
+                        <div class="anomaly-card <%= anomalie.gravite %>" data-id="<%= anomalie.id %>">
+                            <div class="d-flex gap-3">
+                                <!-- Icon -->
+                                <div class="anomaly-icon 
+                                    <%= anomalie.gravite === 'critique' ? 'bg-danger' : 
+                                        anomalie.gravite === 'majeure' ? 'bg-warning' : 
+                                        anomalie.gravite === 'mineure' ? 'bg-info' : 'bg-secondary' %> 
+                                    bg-opacity-10">
+                                    <i class="bi 
+                                        <%= anomalie.type === 'absence' ? 'bi-person-x' :
+                                            anomalie.type === 'retard' ? 'bi-clock-history' :
+                                            anomalie.type === 'depart' ? 'bi-door-open' :
+                                            anomalie.type === 'oubli' ? 'bi-exclamation-circle' :
+                                            'bi-files' %> 
+                                        <%= anomalie.gravite === 'critique' ? 'text-danger' : 
+                                            anomalie.gravite === 'majeure' ? 'text-warning' : 
+                                            'text-info' %>"></i>
+                                </div>
+
+                                <!-- Content -->
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h5 class="mb-1">
+                                                <%= anomalie.employe.nom %>
+                                                <span class="badge 
+                                                    <%= anomalie.gravite === 'critique' ? 'bg-danger' : 
+                                                        anomalie.gravite === 'majeure' ? 'bg-warning text-dark' : 
+                                                        'bg-info' %>">
+                                                    <%= anomalie.gravite %>
+                                                </span>
+                                            </h5>
+                                            <small class="text-muted">
+                                                <i class="bi bi-person-badge"></i> <%= anomalie.employe.matricule %> • 
+                                                <i class="bi bi-building"></i> <%= anomalie.employe.departement %> • 
+                                                <i class="bi bi-calendar"></i> <%= new Date(anomalie.date).toLocaleDateString('fr-FR') %>
+                                            </small>
+                                        </div>
+                                        <span class="resolution-badge 
+                                            <%= anomalie.statut === 'resolue' ? 'bg-success text-white' : 
+                                                anomalie.statut === 'en_cours' ? 'bg-primary text-white' : 
+                                                anomalie.statut === 'ignoree' ? 'bg-secondary text-white' : 
+                                                'bg-light text-dark' %>">
+                                            <%= anomalie.statut === 'resolue' ? 'Résolue' : 
+                                                anomalie.statut === 'en_cours' ? 'En cours' : 
+                                                anomalie.statut === 'ignoree' ? 'Ignorée' : 
+                                                'En attente' %>
+                                        </span>
+                                    </div>
+
+                                    <div class="alert alert-<%= anomalie.gravite === 'critique' ? 'danger' : anomalie.gravite === 'majeure' ? 'warning' : 'info' %> mb-3">
+                                        <strong><i class="bi bi-info-circle"></i> <%= anomalie.type === 'absence' ? 'Absence non justifiée' :
+                                            anomalie.type === 'retard' ? 'Retard excessif' :
+                                            anomalie.type === 'depart' ? 'Départ anticipé' :
+                                            anomalie.type === 'oubli' ? 'Oubli de pointage' :
+                                            'Pointage en doublon' %></strong>
+                                        <p class="mb-0"><%= anomalie.description %></p>
+                                        <% if (anomalie.details) { %>
+                                            <small class="d-block mt-2"><%= anomalie.details %></small>
+                                        <% } %>
+                                    </div>
+
+                                    <!-- Timeline si résolution -->
+                                    <% if (anomalie.historique && anomalie.historique.length > 0) { %>
+                                    <div class="mt-3">
+                                        <h6 class="mb-3"><i class="bi bi-clock-history"></i> Historique</h6>
+                                        <% anomalie.historique.forEach(event => { %>
+                                        <div class="timeline-item">
+                                            <div class="timeline-dot bg-<%= event.type === 'creation' ? 'danger' : event.type === 'resolution' ? 'success' : 'primary' %>"></div>
+                                            <small class="text-muted"><%= new Date(event.date).toLocaleString('fr-FR') %></small>
+                                            <p class="mb-0"><%= event.action %></p>
+                                            <% if (event.auteur) { %>
+                                                <small class="text-muted">Par: <%= event.auteur %></small>
+                                            <% } %>
+                                        </div>
+                                        <% }); %>
+                                    </div>
+                                    <% } %>
+
+                                    <!-- Actions -->
+                                    <% if (anomalie.statut === 'en_attente') { %>
+                                    <div class="action-buttons mt-3">
+                                        <button class="btn btn-success btn-sm" onclick="resoudreAnomalie('<%= anomalie.id %>')">
+                                            <i class="bi bi-check-circle"></i> Résoudre
+                                        </button>
+                                        <button class="btn btn-primary btn-sm" onclick="corrigerPointage('<%= anomalie.id %>')">
+                                            <i class="bi bi-pencil"></i> Corriger
+                                        </button>
+                                        <button class="btn btn-warning btn-sm" onclick="justifierAbsence('<%= anomalie.id %>')">
+                                            <i class="bi bi-file-text"></i> Justifier
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" onclick="ignorerAnomalie('<%= anomalie.id %>')">
+                                            <i class="bi bi-eye-slash"></i> Ignorer
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm" onclick="ajouterNote('<%= anomalie.id %>')">
+                                            <i class="bi bi-chat-left-text"></i> Note
+                                        </button>
+                                    </div>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="text-center py-5">
+                            <i class="bi bi-check-circle display-1 text-success"></i>
+                            <h4 class="text-muted mt-3">Aucune anomalie détectée</h4>
+                            <p class="text-muted">Tous les pointages sont conformes aux règles définies</p>
+                            <button class="btn btn-primary mt-3" onclick="detecterAnomalies()">
+                                <i class="bi bi-search"></i> Lancer une détection
+                            </button>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Résolution -->
+    <div class="modal fade" id="resolutionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-check-circle"></i> Résoudre l'anomalie</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="resolutionForm">
+                        <input type="hidden" id="anomalieId" name="anomalieId">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Action prise <span class="text-danger">*</span></label>
+                            <select class="form-select" name="action" required>
+                                <option value="">Sélectionner...</option>
+                                <option value="correction">Correction du pointage</option>
+                                <option value="justification">Justificatif fourni</option>
+                                <option value="sanction">Sanction appliquée</option>
+                                <option value="autre">Autre</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Commentaire <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="commentaire" rows="4" 
+                                      placeholder="Décrivez la résolution..." required></textarea>
+                        </div>
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="notifier" id="notifier">
+                            <label class="form-check-label" for="notifier">
+                                Notifier l'employé par email
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-success" onclick="enregistrerResolution()">
+                        <i class="bi bi-save"></i> Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        const resolutionModal = new bootstrap.Modal(document.getElementById('resolutionModal'));
+
+        function detecterAnomalies() {
+            if (confirm('Lancer une détection complète des anomalies ?')) {
+                const btn = event.target;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Détection...';
+                
+                fetch('/api/presence/anomalies/detect', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        alert(`Détection terminée!\n${data.count} nouvelles anomalies détectées.`);
+                        location.reload();
+                    })
+                    .catch(err => {
+                        alert('Erreur: ' + err.message);
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-search"></i> Détecter Anomalies';
+                    });
+            }
+        }
+
+        function resoudreAnomalie(id) {
+            document.getElementById('anomalieId').value = id;
+            document.getElementById('resolutionForm').reset();
+            resolutionModal.show();
+        }
+
+        function enregistrerResolution() {
+            const form = document.getElementById('resolutionForm');
+            const formData = new FormData(form);
+            
+            fetch('/api/presence/anomalies/resolve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(formData))
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Anomalie résolue avec succès!');
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + data.message);
+                }
+            });
+        }
+
+        function corrigerPointage(id) {
+            window.location.href = `/presence/corriger?anomalie=${id}`;
+        }
+
+        function justifierAbsence(id) {
+            window.location.href = `/presence/justifier?anomalie=${id}`;
+        }
+
+        function ignorerAnomalie(id) {
+            if (confirm('Ignorer définitivement cette anomalie ?')) {
+                fetch(`/api/presence/anomalies/${id}/ignore`, { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.querySelector(`[data-id="${id}"]`).remove();
+                            alert('Anomalie ignorée');
+                        }
+                    });
+            }
+        }
+
+        function ajouterNote(id) {
+            const note = prompt('Ajouter une note :');
+            if (note) {
+                fetch(`/api/presence/anomalies/${id}/note`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ note })
+                })
+                .then(res => res.json())
+                .then(() => location.reload());
+            }
+        }
+
+        function exporterAnomalies() {
+            const params = new URLSearchParams(window.location.search);
+            window.location.href = `/api/presence/anomalies/export?${params}`;
+        }
+
+        function afficherRegles() {
+            window.location.href = '/presence/parametres/regles';
+        }
+    </script>
+</body>
+</html>

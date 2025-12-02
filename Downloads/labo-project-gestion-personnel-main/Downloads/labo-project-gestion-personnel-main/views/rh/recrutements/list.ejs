@@ -1,0 +1,356 @@
+<!-- views/rh/recrutements/list.ejs -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion des Recrutements - Lab Manager</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    .status-badge {
+      padding: 0.35em 0.65em;
+      font-size: 0.85em;
+    }
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+      transition: all 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <div class="d-flex">
+    <%- include('../../partials/sidebar') %>
+    
+    <div class="main-content" style="margin-left: 260px; width: calc(100% - 260px);">
+    
+      
+      <div class="container-fluid p-4">
+        <!-- En-tête -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h2><i class="bi bi-person-plus text-success"></i> Gestion des Recrutements</h2>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/dashboard">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="/rh/dashboard">RH</a></li>
+                <li class="breadcrumb-item active">Recrutements</li>
+              </ol>
+            </nav>
+          </div>
+          <a href="/rh/recrutements/nouveau" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Nouveau Recrutement
+          </a>
+        </div>
+
+        <!-- Messages -->
+        <% if (typeof success !== 'undefined') { %>
+        <div class="alert alert-success alert-dismissible fade show">
+          <%= success %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <% } %>
+
+        <!-- Statistiques -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded p-3">
+                      <i class="bi bi-briefcase fs-3"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="text-muted mb-1">Total Recrutements</h6>
+                    <h3 class="mb-0"><%= statistiques.total_recrutements || 0 %></h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="bg-success bg-opacity-10 text-success rounded p-3">
+                      <i class="bi bi-door-open fs-3"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="text-muted mb-1">Ouverts</h6>
+                    <h3 class="mb-0"><%= statistiques.recrutements_ouverts || 0 %></h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="bg-warning bg-opacity-10 text-warning rounded p-3">
+                      <i class="bi bi-hourglass-split fs-3"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="text-muted mb-1">En cours</h6>
+                    <h3 class="mb-0"><%= statistiques.recrutements_en_cours || 0 %></h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="bg-info bg-opacity-10 text-info rounded p-3">
+                      <i class="bi bi-people fs-3"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="text-muted mb-1">Postes à Pourvoir</h6>
+                    <h3 class="mb-0"><%= statistiques.total_postes || 0 %></h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recrutements en cours prioritaires -->
+        <% if (enCours && enCours.length > 0) { %>
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-warning bg-opacity-10">
+            <h5 class="mb-0"><i class="bi bi-exclamation-circle text-warning"></i> Recrutements Urgents</h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <% enCours.forEach(rec => { %>
+              <div class="col-md-6">
+                <div class="alert alert-warning mb-0">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 class="mb-1"><%= rec.poste_nom %></h6>
+                      <small>Ref: <%= rec.reference %> - <%= rec.nombre_postes %> poste(s)</small>
+                    </div>
+                    <div class="text-end">
+                      <span class="badge bg-danger"><%= rec.jours_restants %> jours</span><br>
+                      <small class="text-muted">Clôture: <%= new Date(rec.date_cloture).toLocaleDateString('fr-FR') %></small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+        <% } %>
+
+        <!-- Filtres -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Rechercher (référence, poste)...">
+              </div>
+              <div class="col-md-3">
+                <select id="filterStatut" class="form-select">
+                  <option value="">Tous les statuts</option>
+                  <option value="Brouillon">Brouillon</option>
+                  <option value="Ouvert">Ouvert</option>
+                  <option value="En cours">En cours</option>
+                  <option value="Cloturé">Cloturé</option>
+                  <option value="Annulé">Annulé</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <select id="filterType" class="form-select">
+                  <option value="">Tous les types</option>
+                  <option value="CDI">CDI</option>
+                  <option value="CDD">CDD</option>
+                  <option value="Stage">Stage</option>
+                  <option value="Alternance">Alternance</option>
+                  <option value="Intérim">Intérim</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Liste des recrutements -->
+        <div class="row g-4" id="recrutementsList">
+          <% recrutements.forEach(rec => { 
+            let badgeClass = 'secondary';
+            let iconClass = 'file-text';
+            
+            switch(rec.statut) {
+              case 'Ouvert': badgeClass = 'success'; iconClass = 'door-open'; break;
+              case 'En cours': badgeClass = 'warning'; iconClass = 'hourglass-split'; break;
+              case 'Cloturé': badgeClass = 'info'; iconClass = 'check-circle'; break;
+              case 'Annulé': badgeClass = 'danger'; iconClass = 'x-circle'; break;
+            }
+          %>
+          <div class="col-md-6 col-lg-4 recrutement-item" 
+               data-reference="<%= rec.reference.toLowerCase() %>"
+               data-poste="<%= rec.poste_nom.toLowerCase() %>"
+               data-statut="<%= rec.statut %>"
+               data-type="<%= rec.type_recrutement %>">
+            <div class="card h-100 border-0 shadow-sm card-hover">
+              <div class="card-body">
+                <!-- En-tête -->
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                  <div class="flex-grow-1">
+                    <h5 class="card-title mb-1">
+                      <a href="/rh/recrutements/<%= rec.id %>" class="text-decoration-none">
+                        <%= rec.poste_nom %>
+                      </a>
+                    </h5>
+                    <small class="text-muted"><%= rec.reference %></small>
+                  </div>
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                      <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="/rh/recrutements/<%= rec.id %>">
+                        <i class="bi bi-eye"></i> Voir détails
+                      </a></li>
+                      <li><a class="dropdown-item" href="/rh/recrutements/<%= rec.id %>/edit">
+                        <i class="bi bi-pencil"></i> Modifier
+                      </a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <% if (rec.statut === 'Brouillon') { %>
+                      <li><a class="dropdown-item" href="#" onclick="changerStatut(<%= rec.id %>, 'Ouvert')">
+                        <i class="bi bi-door-open"></i> Ouvrir
+                      </a></li>
+                      <% } %>
+                      <li><a class="dropdown-item text-danger" href="#" onclick="deleteRecrutement(<%= rec.id %>)">
+                        <i class="bi bi-trash"></i> Supprimer
+                      </a></li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- Informations -->
+                <div class="mb-3">
+                  <span class="badge bg-<%= badgeClass %> status-badge">
+                    <i class="bi bi-<%= iconClass %>"></i> <%= rec.statut %>
+                  </span>
+                  <span class="badge bg-primary status-badge ms-1">
+                    <%= rec.type_recrutement %>
+                  </span>
+                  <span class="badge bg-secondary status-badge ms-1">
+                    <%= rec.nombre_postes %> poste<%= rec.nombre_postes > 1 ? 's' : '' %>
+                  </span>
+                </div>
+
+                <!-- Dates -->
+                <div class="small text-muted mb-2">
+                  <div><i class="bi bi-calendar-event"></i> Ouverture: <%= new Date(rec.date_ouverture).toLocaleDateString('fr-FR') %></div>
+                  <div><i class="bi bi-calendar-x"></i> Clôture: <%= new Date(rec.date_cloture).toLocaleDateString('fr-FR') %></div>
+                </div>
+
+                <!-- Demandeur -->
+                <% if (rec.demandeur_nom) { %>
+                <div class="small text-muted">
+                  <i class="bi bi-person"></i> Demandé par <%= rec.demandeur_prenom %> <%= rec.demandeur_nom %>
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+
+        <!-- Message si aucun recrutement -->
+        <% if (recrutements.length === 0) { %>
+        <div class="text-center py-5">
+          <i class="bi bi-inbox display-1 text-muted"></i>
+          <h4 class="mt-3">Aucun recrutement</h4>
+          <p class="text-muted">Commencez par créer votre premier recrutement</p>
+          <a href="/rh/recrutements/nouveau" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nouveau Recrutement
+          </a>
+        </div>
+        <% } %>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Recherche et filtrage
+    const searchInput = document.getElementById('searchInput');
+    const filterStatut = document.getElementById('filterStatut');
+    const filterType = document.getElementById('filterType');
+
+    function filterRecrutements() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const selectedStatut = filterStatut.value;
+      const selectedType = filterType.value;
+
+      document.querySelectorAll('.recrutement-item').forEach(item => {
+        const reference = item.dataset.reference;
+        const poste = item.dataset.poste;
+        const statut = item.dataset.statut;
+        const type = item.dataset.type;
+
+        const matchesSearch = !searchTerm || reference.includes(searchTerm) || poste.includes(searchTerm);
+        const matchesStatut = !selectedStatut || statut === selectedStatut;
+        const matchesType = !selectedType || type === selectedType;
+
+        item.style.display = (matchesSearch && matchesStatut && matchesType) ? '' : 'none';
+      });
+    }
+
+    searchInput.addEventListener('input', filterRecrutements);
+    filterStatut.addEventListener('change', filterRecrutements);
+    filterType.addEventListener('change', filterRecrutements);
+
+    // Changer le statut
+    function changerStatut(id, statut) {
+      if (confirm(`Confirmer le changement de statut vers "${statut}" ?`)) {
+        fetch(`/rh/recrutements/${id}/statut`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ statut })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Erreur: ' + data.message);
+          }
+        });
+      }
+    }
+
+    // Suppression
+    function deleteRecrutement(id) {
+      if (confirm('Êtes-vous sûr de vouloir supprimer ce recrutement ?')) {
+        fetch(`/rh/recrutements/${id}/delete`, { method: 'POST' })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              location.reload();
+            } else {
+              alert('Erreur: ' + data.message);
+            }
+          });
+      }
+    }
+  </script>
+</body>
+</html>

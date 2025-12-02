@@ -12,16 +12,38 @@
             --sidebar-width: 250px;
         }
         
-        /* Layout avec sidebar fixe */
         .main-content {
             margin-left: var(--sidebar-width);
             padding: 30px;
             min-height: 100vh;
         }
+
+        .dept-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .dept-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15) !important;
+        }
+
+        .personnel-item {
+            border-left: 3px solid #0d6efd;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .badge-type {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+        }
     </style>
 </head>
 <body>
-      <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    <%- include('../partials/sidebar', { currentPage: 'departements' }) %>
     
     <div class="main-content">
         <div class="container-fluid px-4 py-4">
@@ -35,24 +57,24 @@
             <div class="row g-4">
                 <% departements.forEach(dept => { %>
                 <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 shadow-sm">
+                    <div class="card h-100 shadow-sm dept-card" onclick="showDepartementDetails(<%= dept.id %>)">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><%= dept.nom %></h5>
                             <small class="text-white-50">Code: <%= dept.code %></small>
                         </div>
                         <div class="card-body">
                             <% if (dept.description) { %>
-                            <p class="text-muted"><%= dept.description %></p>
+                            <p class="text-muted small"><%= dept.description %></p>
                             <% } %>
                             
                             <div class="mb-3">
-                                <strong>Responsable:</strong><br>
-                                <%= dept.responsable_nom || 'Non assigné' %>
+                                <strong><i class="bi bi-person-badge"></i> Responsable:</strong><br>
+                                <span class="text-primary"><%= dept.responsable_nom || 'Non assigné' %></span>
                             </div>
                             
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <i class="bi bi-people"></i>
+                                    <i class="bi bi-people-fill text-primary"></i>
                                     <strong><%= dept.nb_personnel || 0 %></strong> personnes
                                 </div>
                                 <span class="badge <%= dept.statut === 'Actif' ? 'bg-success' : 'bg-secondary' %>">
@@ -62,12 +84,12 @@
                         </div>
                         <div class="card-footer bg-light">
                             <div class="btn-group w-100">
-                                <a href="/rh/departements/edit/<%= dept.id %>" class="btn btn-sm btn-warning">
+                                <a href="/rh/departements/edit/<%= dept.id %>" class="btn btn-sm btn-warning" onclick="event.stopPropagation()">
                                     <i class="bi bi-pencil"></i> Modifier
                                 </a>
-                                <a href="/rh/postes?dept=<%= dept.id %>" class="btn btn-sm btn-info">
-                                    <i class="bi bi-briefcase"></i> Postes
-                                </a>
+                                <button class="btn btn-sm btn-info" onclick="event.stopPropagation(); showDepartementDetails(<%= dept.id %>)">
+                                    <i class="bi bi-eye"></i> Détails
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -77,6 +99,135 @@
         </div>
     </div>
 
+    <!-- Modal Détails Département -->
+    <div class="modal fade" id="departementModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-building"></i> <span id="modalDeptName"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function showDepartementDetails(deptId) {
+            const modal = new bootstrap.Modal(document.getElementById('departementModal'));
+            modal.show();
+
+            try {
+                const response = await fetch(`/rh/departements/api/${deptId}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const dept = data.departement;
+                    const personnel = data.personnel;
+
+                    document.getElementById('modalDeptName').textContent = dept.nom;
+
+                    let html = `
+                        <div class="mb-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Code:</strong> ${dept.code}</p>
+                                    <p><strong>Responsable:</strong> ${dept.responsable_nom || 'Non assigné'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Statut:</strong> 
+                                        <span class="badge ${dept.statut === 'Actif' ? 'bg-success' : 'bg-secondary'}">
+                                            ${dept.statut}
+                                        </span>
+                                    </p>
+                                    <p><strong>Total Personnel:</strong> ${personnel.length}</p>
+                                </div>
+                            </div>
+                            ${dept.description ? `<p class="text-muted mt-2"><em>${dept.description}</em></p>` : ''}
+                        </div>
+
+                        <hr>
+
+                        <h6 class="mb-3"><i class="bi bi-people"></i> Personnel du Département</h6>
+                    `;
+
+                    if (personnel.length === 0) {
+                        html += `
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> Aucun personnel assigné à ce département
+                            </div>
+                        `;
+                    } else {
+                        // Grouper par type de personnel
+                        const grouped = {};
+                        personnel.forEach(p => {
+                            if (!grouped[p.type_personnel]) {
+                                grouped[p.type_personnel] = [];
+                            }
+                            grouped[p.type_personnel].push(p);
+                        });
+
+                        Object.keys(grouped).sort().forEach(type => {
+                            html += `
+                                <div class="mb-3">
+                                    <h6 class="text-primary">
+                                        <i class="bi bi-dot"></i> ${type} (${grouped[type].length})
+                                    </h6>
+                            `;
+
+                            grouped[type].forEach(p => {
+                                html += `
+                                    <div class="personnel-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>${p.prenom} ${p.nom}</strong>
+                                                <span class="badge badge-type bg-secondary ms-2">${p.matricule}</span>
+                                            </div>
+                                            <div>
+                                                <a href="/personnel/edit/${p.id}" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation()">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        ${p.email ? `<small class="text-muted"><i class="bi bi-envelope"></i> ${p.email}</small>` : ''}
+                                    </div>
+                                `;
+                            });
+
+                            html += `</div>`;
+                        });
+                    }
+
+                    document.getElementById('modalContent').innerHTML = html;
+                } else {
+                    document.getElementById('modalContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            Erreur lors du chargement des détails
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                document.getElementById('modalContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        Erreur lors du chargement des détails
+                    </div>
+                `;
+            }
+        }
+    </script>
 </body>
 </html>

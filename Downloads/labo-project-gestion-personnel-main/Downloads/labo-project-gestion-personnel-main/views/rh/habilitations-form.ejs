@@ -1,0 +1,120 @@
+<!-- ==================== views/rh/habilitations-form.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajouter Habilitation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+      <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    
+    <div class="main-content">
+        <div class="container-fluid px-4 py-4">
+            <h2 class="mb-4">Ajouter une Habilitation</h2>
+
+            <form method="POST" action="/rh/habilitations/create" enctype="multipart/form-data">
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Informations Habilitation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Personnel <span class="text-danger">*</span></label>
+                                <select class="form-select" name="personnel_id" required>
+                                    <option value="">Sélectionner...</option>
+                                    <% personnel.forEach(p => { %>
+                                    <option value="<%= p.id %>">
+                                        <%= p.prenom %> <%= p.nom %> (<%= p.type_personnel %>)
+                                    </option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Type d'Habilitation <span class="text-danger">*</span></label>
+                                <select class="form-select" name="type_habilitation" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="Biochimie">Biochimie</option>
+                                    <option value="Hématologie">Hématologie</option>
+                                    <option value="Microbiologie">Microbiologie</option>
+                                    <option value="Biologie Délocalisée">Biologie Délocalisée</option>
+                                    <option value="Immuno-Séro-Electro">Immuno-Séro-Electro</option>
+                                    <option value="Automate Biochimie">Automate Biochimie</option>
+                                    <option value="Automate Hématologie">Automate Hématologie</option>
+                                    <option value="Automate Microbiologie">Automate Microbiologie</option>
+                                    <option value="Prélèvement">Prélèvement</option>
+                                    <option value="Qualité">Assurance Qualité</option>
+                                    <option value="Autre">Autre</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Code Habilitation</label>
+                                <input type="text" class="form-control" name="code_habilitation"
+                                       placeholder="Ex: HAB-BIO-001">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Niveau</label>
+                                <select class="form-select" name="niveau">
+                                    <option value="">Non spécifié</option>
+                                    <option value="Débutant">Débutant</option>
+                                    <option value="Intermédiaire">Intermédiaire</option>
+                                    <option value="Confirmé">Confirmé</option>
+                                    <option value="Expert">Expert</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Formation liée</label>
+                                <select class="form-select" name="formation_id">
+                                    <option value="">Aucune</option>
+                                    <% formations.forEach(f => { %>
+                                    <option value="<%= f.id %>"><%= f.titre %></option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Date d'Obtention <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" name="date_obtention" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Date d'Expiration</label>
+                                <input type="date" class="form-control" name="date_expiration">
+                                <small class="text-muted">Laisser vide si pas d'expiration</small>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Notes / Commentaires</label>
+                                <textarea class="form-control" name="notes" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-2"></i> Enregistrer
+                    </button>
+                    <a href="/rh/habilitations" class="btn btn-secondary">
+                        <i class="bi bi-x-circle me-2"></i> Annuler
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

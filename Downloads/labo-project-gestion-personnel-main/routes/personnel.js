@@ -1,7 +1,8 @@
-// ==================== routes/personnel.js ====================
+// ==================== routes/personnel.js (MISE À JOUR) ====================
 const express = require('express');
 const router = express.Router();
 const Personnel = require('../models/Personnel');
+const Departement = require('../models/Departement');
 const { getConnection, sql } = require('../database/config');
 
 // List page
@@ -19,17 +20,29 @@ router.get('/api/list', async (req, res) => {
   }
 });
 
-// Add page
-router.get('/add', (req, res) => {
-  res.render('personnel-add', { currentPage: 'personnel-add' });
+// Add page - MODIFIÉ pour charger les départements
+router.get('/add', async (req, res) => {
+  try {
+    const departements = await Departement.getAll();
+    res.render('personnel-add', { 
+      currentPage: 'personnel-add',
+      departements: departements 
+    });
+  } catch (err) {
+    console.error('Erreur lors du chargement des départements:', err);
+    res.render('personnel-add', { 
+      currentPage: 'personnel-add',
+      departements: [] 
+    });
+  }
 });
 
-// Edit page
+// Edit page - MODIFIÉ pour charger les départements
 router.get('/edit/:id', async (req, res) => {
   try {
     const personnel = await Personnel.getById(req.params.id);
+    const departements = await Departement.getAll();
     
-    // Get specific data based on type
     const pool = await getConnection();
     let specificData = null;
     
@@ -50,13 +63,18 @@ router.get('/edit/:id', async (req, res) => {
       specificData = result.recordset[0];
     }
     
-    res.render('personnel-edit', { personnel, specificData, currentPage: 'personnel-list' });
+    res.render('personnel-edit', { 
+      personnel, 
+      specificData, 
+      departements,
+      currentPage: 'personnel-list' 
+    });
   } catch (err) {
     res.status(500).send('Erreur lors de la récupération du personnel');
   }
 });
 
-// Create personnel
+// Create personnel - INCHANGÉ (le modèle gère déjà departement_id)
 router.post('/create', async (req, res) => {
   try {
     const personnelId = await Personnel.create(req.body);
@@ -98,7 +116,7 @@ router.post('/create', async (req, res) => {
   }
 });
 
-// Update personnel
+// Update personnel - INCHANGÉ (le modèle gère déjà departement_id)
 router.post('/update/:id', async (req, res) => {
   try {
     await Personnel.update(req.params.id, req.body);
@@ -215,9 +233,8 @@ router.get('/api/statistics', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// ==================== À ajouter dans routes/personnel.js ====================
 
-// Route API pour récupérer les détails d'un personnel (pour le modal)
+// API pour récupérer les détails d'un personnel
 router.get('/api/:id', async (req, res) => {
   try {
     const personnel = await Personnel.getById(req.params.id);
@@ -240,6 +257,5 @@ router.get('/api/:id', async (req, res) => {
     });
   }
 });
-
 
 module.exports = router;

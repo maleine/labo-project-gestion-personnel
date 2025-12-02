@@ -1,4 +1,4 @@
-<!-- ==================== views/rh/formations-details.ejs ==================== -->
+<!-- ==================== views/rh/formations-details.ejs (CORRIGÉ - Design Original) ==================== -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -7,7 +7,7 @@
     <title>Formation - <%= formation.titre %></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-     <style>
+    <style>
         :root {
             --sidebar-width: 250px;
         }
@@ -21,7 +21,7 @@
     </style>
 </head>
 <body>
-       <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    <%- include('../partials/sidebar', { currentPage: 'formations' }) %>
     
     <div class="main-content">
         <div class="container-fluid px-4 py-4">
@@ -116,9 +116,13 @@
                                             <% } %>
                                         </td>
                                         <td>
-                                            <button class="btn btn-sm btn-success" onclick="validerParticipation(<%= participant.id %>)">
+                                            <% if (participant.statut !== 'Validé') { %>
+                                            <button 
+                                                class="btn btn-sm btn-success" 
+                                                onclick="validerParticipation(<%= participant.id %>, '<%= participant.nom_complet %>')">
                                                 <i class="bi bi-check"></i> Valider
                                             </button>
+                                            <% } %>
                                         </td>
                                     </tr>
                                     <% }); %>
@@ -183,11 +187,96 @@
         </div>
     </div>
 
+    <!-- Modal Validation Participation -->
+    <div class="modal fade" id="validationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Valider la Participation</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Participant:</strong> <span id="participantName"></span></p>
+                    <div class="mb-3">
+                        <label class="form-label">Note d'évaluation (/20)</label>
+                        <input type="number" id="noteEvaluation" class="form-control" 
+                               min="0" max="20" step="0.5" placeholder="Ex: 15.5">
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="certificatObtenu">
+                        <label class="form-check-label" for="certificatObtenu">
+                            Certificat obtenu
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-success" onclick="confirmerValidation()">
+                        <i class="bi bi-check-lg"></i> Valider
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function validerParticipation(inscriptionId) {
-            // Implémentation validation
-            alert('Validation participation ' + inscriptionId);
+        let currentInscriptionId = null;
+        let validationModal = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            validationModal = new bootstrap.Modal(document.getElementById('validationModal'));
+        });
+
+        // Ouvrir la modal de validation
+        function validerParticipation(inscriptionId, participantName) {
+            currentInscriptionId = inscriptionId;
+            document.getElementById('participantName').textContent = participantName;
+            document.getElementById('noteEvaluation').value = '';
+            document.getElementById('certificatObtenu').checked = false;
+            validationModal.show();
+        }
+
+        // Confirmer la validation
+        async function confirmerValidation() {
+            if (!currentInscriptionId) {
+                alert('Erreur: ID inscription manquant');
+                return;
+            }
+
+            const note = document.getElementById('noteEvaluation').value;
+            const certificat = document.getElementById('certificatObtenu').checked;
+
+            // Validation de la note
+            if (note && (parseFloat(note) < 0 || parseFloat(note) > 20)) {
+                alert('La note doit être entre 0 et 20');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/rh/formations/valider/${currentInscriptionId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        note_evaluation: note || null,
+                        certificat_obtenu: certificat
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Participation validée avec succès');
+                    location.reload();
+                } else {
+                    alert('Erreur lors de la validation: ' + (data.message || 'Erreur inconnue'));
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la validation. Veuillez réessayer.');
+            }
         }
     </script>
 </body>

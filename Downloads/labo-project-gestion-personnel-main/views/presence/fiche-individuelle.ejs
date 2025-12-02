@@ -1,0 +1,156 @@
+<!-- ==================== views/presence/fiche-individuelle.ejs ==================== -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiche Présence - <%= personnel.prenom %> <%= personnel.nom %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        /* Layout avec sidebar fixe */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/sidebar') %>
+    
+    <div class="main-content">
+        <div class="container-fluid px-4 py-4">
+            <h2 class="mb-4">
+                <i class="bi bi-person-badge"></i> 
+                Fiche Présence - <%= personnel.prenom %> <%= personnel.nom %>
+            </h2>
+
+            <!-- Filtres mois/année -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Mois</label>
+                            <select class="form-select" name="mois">
+                                <% for(let m = 1; m <= 12; m++) { %>
+                                <option value="<%= m %>" <%= m === mois ? 'selected' : '' %>>
+                                    <%= new Date(2024, m-1).toLocaleString('fr-FR', {month: 'long'}) %>
+                                </option>
+                                <% } %>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Année</label>
+                            <input type="number" class="form-control" name="annee" value="<%= annee %>">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Afficher
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center border-success">
+                        <div class="card-body">
+                            <h3 class="text-success"><%= stats.jours_presents || 0 %></h3>
+                            <p class="mb-0">Jours Présent</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center border-danger">
+                        <div class="card-body">
+                            <h3 class="text-danger"><%= stats.jours_absents || 0 %></h3>
+                            <p class="mb-0">Jours Absent</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center border-warning">
+                        <div class="card-body">
+                            <h3 class="text-warning"><%= stats.nb_retards || 0 %></h3>
+                            <p class="mb-0">Retards</p>
+                            <small class="text-muted"><%= stats.total_minutes_retard || 0 %> min total</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center border-info">
+                        <div class="card-body">
+                            <h3 class="text-info"><%= stats.moyenne_heures_jour ? (stats.moyenne_heures_jour / 60).toFixed(1) : 0 %>h</h3>
+                            <p class="mb-0">Moyenne/Jour</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Détail présences -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Détail des Présences</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Jour</th>
+                                <th>Arrivée</th>
+                                <th>Départ</th>
+                                <th>Temps</th>
+                                <th>Retard</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% presences.forEach(p => { 
+                                const date = new Date(p.date);
+                            %>
+                            <tr>
+                                <td><%= date.toLocaleDateString('fr-FR') %></td>
+                                <td><%= date.toLocaleDateString('fr-FR', {weekday: 'short'}) %></td>
+                                <td><%= p.heure_arrivee || '-' %></td>
+                                <td><%= p.heure_depart || '-' %></td>
+                                <td>
+                                    <% if(p.temps_travail_minutes) { %>
+                                        <%= Math.floor(p.temps_travail_minutes/60) %>h<%= p.temps_travail_minutes%60 %>m
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if(p.retard_minutes > 0) { %>
+                                        <span class="badge bg-warning"><%= p.retard_minutes %>min</span>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<%= p.statut === 'Présent' ? 'success' : p.statut === 'Absent' ? 'danger' : 'secondary' %>">
+                                        <%= p.statut %>
+                                    </span>
+                                </td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

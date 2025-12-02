@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demandes d'Absence</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+        }
+        
+        .badge-type {
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e0e0e0;
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #3498db;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #3498db;
+        }
+    </style>
+</head>
+<body>
+   <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
+    
+    <div class="main-content">
+        <div class="container-fluid px-4 py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-file-earmark-text"></i> Demandes d'Absence</h2>
+                <div>
+                    <a href="/absences/calendrier" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-calendar"></i> Calendrier
+                    </a>
+                    <a href="/absences/soldes" class="btn btn-outline-info me-2">
+                        <i class="bi bi-wallet2"></i> Soldes
+                    </a>
+                    <a href="/absences/demandes/add" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Nouvelle Demande
+                    </a>
+                </div>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h3><%= demandes.filter(d => d.statut === 'En attente').length %></h3>
+                            <small>En Attente</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h3><%= demandes.filter(d => d.statut === 'Approuvée').length %></h3>
+                            <small>Approuvées</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body text-center">
+                            <h3><%= demandes.filter(d => d.statut === 'Refusée').length %></h3>
+                            <small>Refusées</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h3><%= demandes.reduce((sum, d) => sum + parseInt(d.nb_jours || 0), 0) %></h3>
+                            <small>Total Jours Demandés</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtres -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <select class="form-select" id="filterStatut">
+                                <option value="">Tous les statuts</option>
+                                <option value="En attente">En attente</option>
+                                <option value="Approuvée">Approuvée</option>
+                                <option value="Refusée">Refusée</option>
+                                <option value="Annulée">Annulée</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="filterCategorie">
+                                <option value="">Toutes catégories</option>
+                                <option value="Congé">Congés</option>
+                                <option value="Maladie">Maladie</option>
+                                <option value="Formation">Formation</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" id="searchPersonnel" placeholder="Rechercher personnel...">
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-secondary w-100" onclick="resetFilters()">
+                                <i class="bi bi-arrow-clockwise"></i> Réinitialiser
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="card">
+                <div class="card-body">
+                    <table id="demandesTable" class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Référence</th>
+                                <th>Personnel</th>
+                                <th>Type</th>
+                                <th>Période</th>
+                                <th>Nb Jours</th>
+                                <th>Date Demande</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% demandes.forEach(demande => { %>
+                            <tr>
+                                <td><strong><%= demande.reference %></strong></td>
+                                <td>
+                                    <%= demande.personnel_nom %><br>
+                                    <small class="text-muted"><%= demande.type_personnel || 'N/A' %></small>
+                                </td>
+                                <td>
+                                    <span class="badge badge-type" style="background-color:<%= demande.couleur %>">
+                                        <%= demande.type_absence %>
+                                    </span>
+                                    <br>
+                                    <small class="text-muted"><%= demande.categorie %></small>
+                                </td>
+                                <td>
+                                    <%= new Date(demande.date_debut).toLocaleDateString('fr-FR') %><br>
+                                    <small class="text-muted">→ <%= new Date(demande.date_fin).toLocaleDateString('fr-FR') %></small>
+                                </td>
+                                <td class="text-center">
+                                    <strong class="fs-5"><%= parseInt(demande.nb_jours) %></strong>
+                                    <small class="text-muted d-block">jours</small>
+                                </td>
+                                <td><%= new Date(demande.date_demande).toLocaleDateString('fr-FR') %></td>
+                                <td>
+                                    <span class="badge bg-<%= 
+                                        demande.statut === 'En attente' ? 'warning' : 
+                                        demande.statut === 'Approuvée' ? 'success' : 
+                                        demande.statut === 'Refusée' ? 'danger' : 'secondary' 
+                                    %>">
+                                        <%= demande.statut %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <% if (demande.statut === 'En attente') { %>
+                                        <button class="btn btn-sm btn-success" 
+                                                onclick="valider(<%= demande.id %>, 'Approuvée')"
+                                                title="Approuver">
+                                            <i class="bi bi-check-circle"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" 
+                                                onclick="valider(<%= demande.id %>, 'Refusée')"
+                                                title="Refuser">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                        <% } %>
+                                        <button class="btn btn-sm btn-info" 
+                                                onclick="viewDetails(<%= demande.id %>)"
+                                                title="Voir détails">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Détails Demande -->
+    <div class="modal fade" id="detailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-text"></i> Détails de la Demande
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detailsContent">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        let table;
+        
+        $(document).ready(function() {
+            table = $('#demandesTable').DataTable({
+                order: [[5, 'desc']],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
+                },
+                pageLength: 25
+            });
+
+            // Filtres personnalisés
+            $('#filterStatut').on('change', function() {
+                table.column(6).search(this.value).draw();
+            });
+
+            $('#filterCategorie').on('change', function() {
+                table.column(2).search(this.value).draw();
+            });
+
+            $('#searchPersonnel').on('keyup', function() {
+                table.column(1).search(this.value).draw();
+            });
+        });
+
+        function resetFilters() {
+            $('#filterStatut').val('');
+            $('#filterCategorie').val('');
+            $('#searchPersonnel').val('');
+            table.search('').columns().search('').draw();
+        }
+
+        async function valider(id, statut) {
+            const commentaire = prompt(
+                statut === 'Approuvée' 
+                    ? 'Commentaire d\'approbation (optionnel):' 
+                    : 'Motif du refus (recommandé):'
+            );
+            
+            if (statut === 'Refusée' && !commentaire) {
+                if (!confirm('Voulez-vous vraiment refuser sans commentaire ?')) {
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch(`/absences/demandes/${id}/valider`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        validateur_id: 1, // À remplacer par l'utilisateur connecté
+                        statut: statut,
+                        commentaire: commentaire
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert(
+                        'success',
+                        `Demande ${statut === 'Approuvée' ? 'approuvée' : 'refusée'} avec succès !`
+                    );
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    throw new Error(result.error || 'Erreur lors de la validation');
+                }
+            } catch (error) {
+                showAlert('danger', 'Erreur: ' + error.message);
+            }
+        }
+
+        async function viewDetails(id) {
+            const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+            modal.show();
+
+            document.getElementById('detailsContent').innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/absences/demandes/${id}/details`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const d = data.demande;
+                    const dateDebut = new Date(d.date_debut);
+                    const dateFin = new Date(d.date_fin);
+                    
+                    let historiqueHTML = '';
+                    if (d.historique && d.historique.length > 0) {
+                        historiqueHTML = `
+                            <h6 class="border-bottom pb-2 mb-3 mt-4">Historique de Validation</h6>
+                            <div class="timeline">
+                                ${d.historique.map(h => `
+                                    <div class="timeline-item">
+                                        <strong>${h.action}</strong> par ${h.validateur_nom}
+                                        <br>
+                                        <small class="text-muted">
+                                            ${new Date(h.date_action).toLocaleString('fr-FR')}
+                                        </small>
+                                        ${h.commentaire ? `<br><em class="text-muted">"${h.commentaire}"</em>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+
+                    document.getElementById('detailsContent').innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="border-bottom pb-2 mb-3">Informations Générales</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <th width="40%">Référence:</th>
+                                        <td><strong>${d.reference}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Personnel:</th>
+                                        <td>${d.personnel_nom}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Type:</th>
+                                        <td>
+                                            <span class="badge" style="background-color:${d.couleur}">
+                                                ${d.type_absence}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Date demande:</th>
+                                        <td>${new Date(d.date_demande).toLocaleString('fr-FR')}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="border-bottom pb-2 mb-3">Période d'Absence</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <th width="40%">Date début:</th>
+                                        <td>${dateDebut.toLocaleDateString('fr-FR')}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Date fin:</th>
+                                        <td>${dateFin.toLocaleDateString('fr-FR')}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Nombre de jours:</th>
+                                        <td><strong class="text-primary fs-5">${parseInt(d.nb_jours)}</strong> jours</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Statut:</th>
+                                        <td>
+                                            <span class="badge bg-${
+                                                d.statut === 'En attente' ? 'warning' : 
+                                                d.statut === 'Approuvée' ? 'success' : 
+                                                d.statut === 'Refusée' ? 'danger' : 'secondary'
+                                            }">
+                                                ${d.statut}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        ${d.motif ? `
+                            <div class="mt-3">
+                                <h6 class="border-bottom pb-2 mb-3">Motif de la Demande</h6>
+                                <div class="alert alert-light">
+                                    ${d.motif}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${d.validateur_nom ? `
+                            <div class="mt-3">
+                                <h6 class="border-bottom pb-2 mb-3">Validation</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <th width="30%">Validé par:</th>
+                                        <td>${d.validateur_nom}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Date validation:</th>
+                                        <td>${new Date(d.date_validation).toLocaleString('fr-FR')}</td>
+                                    </tr>
+                                    ${d.commentaire_validation ? `
+                                        <tr>
+                                            <th>Commentaire:</th>
+                                            <td><em>"${d.commentaire_validation}"</em></td>
+                                        </tr>
+                                    ` : ''}
+                                </table>
+                            </div>
+                        ` : ''}
+
+                        ${d.remplacant_nom ? `
+                            <div class="mt-3">
+                                <h6 class="border-bottom pb-2 mb-3">Remplacement</h6>
+                                <p><strong>Remplaçant:</strong> ${d.remplacant_nom}</p>
+                            </div>
+                        ` : ''}
+
+                        ${historiqueHTML}
+
+                        ${d.solde_conges ? `
+                            <div class="mt-4">
+                                <h6 class="border-bottom pb-2 mb-3">Impact sur Solde Congés</h6>
+                                <div class="row">
+                                    <div class="col-md-4 text-center">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h4 class="text-primary">${d.solde_conges.solde_avant || 0}</h4>
+                                                <small>Solde Avant</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        <div class="card bg-warning">
+                                            <div class="card-body">
+                                                <h4>-${parseInt(d.nb_jours)}</h4>
+                                                <small>Jours demandés</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body">
+                                                <h4>${d.solde_conges.solde_apres || 0}</h4>
+                                                <small>Solde Après</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                    `;
+                } else {
+                    throw new Error(data.message || 'Demande non trouvée');
+                }
+            } catch (error) {
+                document.getElementById('detailsContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Erreur lors du chargement des détails: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.minWidth = '300px';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
