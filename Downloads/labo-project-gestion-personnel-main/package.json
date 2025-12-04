@@ -1,11 +1,12 @@
 {
   "name": "lab-personnel-manager",
   "version": "1.0.0",
-  "description": "Application de gestion du personnel d'un laboratoire d'analyse médicale",
+  "description": "Application de gestion du personnel d'un laboratoire d'analyse médicale avec système de licence",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "dev": "nodemon --exec electron .",
+    "activation-server": "node server-activation.js",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
@@ -19,7 +20,9 @@
     "personnel",
     "gestion",
     "medical",
-    "healthcare"
+    "healthcare",
+    "licence",
+    "activation"
   ],
   "author": "Votre Nom",
   "license": "MIT",
@@ -29,14 +32,17 @@
     "nodemon": "^3.0.1"
   },
   "dependencies": {
+    "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "body-parser": "^1.20.3",
     "bootstrap": "^5.3.2",
+    "cors": "^2.8.5",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
     "express-session": "^1.18.2",
     "mssql": "^10.0.1",
     "node-cron": "^4.2.1",
+    "node-machine-id": "^1.1.12",
     "pdfkit": "^0.17.2",
     "zkteco-js": "^1.7.1"
   },
@@ -58,7 +64,8 @@
       "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
       "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
+      "!server-activation.js"
     ],
     "win": {
       "target": [

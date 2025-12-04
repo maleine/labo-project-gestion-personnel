@@ -1,3 +1,4 @@
+<!-- ==================== views/personnel-add.ejs (MODIFIÉ) ==================== -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -6,33 +7,68 @@
     <title>Ajouter Personnel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/style.css" rel="stylesheet">
-    <link href="/css/personnel-style.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-radius: 10px;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 15px 20px;
+        }
+
+        .section-divider {
+            border-top: 2px solid #e9ecef;
+            margin: 25px 0;
+            padding-top: 25px;
+        }
+    </style>
 </head>
 <body>
     <%- include('partials/sidebar', { currentPage: 'personnel-add' }) %>
     
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-10 offset-md-2 px-4 py-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2><i class="bi bi-person-plus text-primary"></i> Ajouter un Personnel</h2>
-                        <p class="text-muted mb-0">Créer une nouvelle fiche personnel</p>
-                    </div>
-                    <a href="/personnel/list" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left me-2"></i> Retour à la liste
-                    </a>
+    <div class="main-content">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>Ajouter un Personnel</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/dashboard">Accueil</a></li>
+                            <li class="breadcrumb-item"><a href="/personnel/list">Personnel</a></li>
+                            <li class="breadcrumb-item active">Ajouter</li>
+                        </ol>
+                    </nav>
                 </div>
+            </div>
 
-                <form id="personnelForm" method="POST" action="/personnel/create" class="fade-in-up">
-                    <!-- Informations Personnelles -->
-                    <div class="form-section">
-                        <div class="section-title">
-                            <i class="bi bi-person-circle"></i> Informations Personnelles
-                        </div>
+            <form method="POST" action="/personnel/create" id="personnelForm">
+                <!-- Informations de base -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-person-fill me-2"></i>
+                            Informations de Base
+                        </h5>
+                    </div>
+                    <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label">Type de Personnel <span class="text-danger">*</span></label>
                                 <select class="form-select" name="type_personnel" id="typePersonnel" required>
                                     <option value="">Sélectionner...</option>
@@ -43,282 +79,352 @@
                                     <option value="Préleveur">Préleveur</option>
                                     <option value="Agent Logistique">Agent Logistique</option>
                                 </select>
-                                <small class="text-muted">Sélectionnez d'abord le type</small>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Matricule <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="matricule" id="matricule" readonly required 
-                                       placeholder="Sélectionnez le type d'abord">
-                                <small class="text-muted" id="matriculeInfo">Généré automatiquement</small>
-                            </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label">Nom <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" name="nom" required>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label">Prénom <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" name="prenom" required>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Téléphone</label>
+                                <input type="tel" class="form-control" name="telephone">
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label">Date de Naissance</label>
                                 <input type="date" class="form-control" name="date_naissance">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Email <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" name="email" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Téléphone</label>
-                                <input type="tel" class="form-control" name="telephone" placeholder="+221 XX XXX XX XX">
-                            </div>
-                            <div class="col-md-2">
                                 <label class="form-label">Date d'Embauche <span class="text-danger">*</span></label>
                                 <input type="date" class="form-control" name="date_embauche" required>
                             </div>
-                            
-                            <!-- NOUVEAU: Sélection du département -->
-                            <div class="col-md-6">
-                                <label class="form-label">
-                                    <i class="bi bi-building me-1"></i> Département
-                                </label>
+                            <div class="col-md-4">
+                                <label class="form-label">Département</label>
                                 <select class="form-select" name="departement_id" id="departementSelect">
-                                    <option value="">Aucun département assigné</option>
-                                    <% if (typeof departements !== 'undefined' && departements.length > 0) { %>
-                                        <% departements.forEach(dept => { %>
-                                            <option value="<%= dept.id %>">
-                                                <%= dept.nom %> (<%= dept.code %>)
-                                            </option>
-                                        <% }); %>
-                                    <% } %>
+                                    <option value="">Sélectionner...</option>
+                                    <% departements.forEach(dept => { %>
+                                    <option value="<%= dept.id %>"><%= dept.nom %></option>
+                                    <% }); %>
                                 </select>
-                                <small class="text-muted">Optionnel - Vous pouvez assigner un département</small>
                             </div>
-                            
                             <div class="col-md-12">
                                 <label class="form-label">Adresse</label>
-                                <textarea class="form-control" name="adresse" rows="2" placeholder="Adresse complète..."></textarea>
+                                <textarea class="form-control" name="adresse" rows="2"></textarea>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Biologiste specific fields -->
-                    <div id="biologisteFields" style="display:none;" class="form-section">
-                        <div class="section-title">
-                            <i class="bi bi-diagram-3"></i> Informations Spécifiques - Biologiste
+                <!-- Section Affectation Poste -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-briefcase-fill me-2"></i>
+                            Affectation à un Poste
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Optionnel :</strong> Vous pouvez affecter ce personnel à un poste dès sa création.
                         </div>
+                        
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Spécialité Principale</label>
-                                <select class="form-select" name="specialite">
-                                    <option value="Biologie délocalisée">Biologie délocalisée</option>
-                                    <option value="Biochimie">Biochimie</option>
-                                    <option value="Hématologie Hémostase">Hématologie Hémostase</option>
-                                    <option value="Microbiologie">Microbiologie</option>
-                                    <option value="Immuno-Séro-Electro">Immuno-Séro-Electro</option>
-                                    <option value="Immuno-Hémato">Immuno-Hémato</option>
+                                <label class="form-label">
+                                    Poste
+                                    <span class="badge bg-secondary ms-2">Optionnel</span>
+                                </label>
+                                <select class="form-select" name="poste_id" id="posteSelect">
+                                    <option value="">Aucun poste (à affecter plus tard)</option>
                                 </select>
+                                <small class="text-muted" id="posteInfo"></small>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Responsabilités Additionnelles</label>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="responsable_assurance_qualite" id="raq">
-                                    <label class="form-check-label" for="raq">
-                                        <i class="bi bi-shield-check text-success me-2"></i>
-                                        Responsable Assurance Qualité
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="equipe_auditeurs" id="ea">
-                                    <label class="form-check-label" for="ea">
-                                        <i class="bi bi-clipboard-check text-primary me-2"></i>
-                                        Équipe Auditeurs Internes
-                                    </label>
-                                </div>
+                            
+                            <div class="col-md-6" id="dateAffectationGroup" style="display: none;">
+                                <label class="form-label">
+                                    Date de Début d'Affectation
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" class="form-control" name="date_debut_affectation" id="dateDebutAffectation">
+                                <small class="text-muted">Date de prise de poste</small>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Technicien specific fields -->
-                    <div id="technicienFields" style="display:none;" class="form-section">
-                        <div class="section-title">
-                            <i class="bi bi-tools"></i> Informations Spécifiques - Technicien
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Département d'Affectation (Spécifique)</label>
-                                <select class="form-select" name="departement">
-                                    <option value="Biochimie">Biochimie</option>
-                                    <option value="Hématologie">Hématologie</option>
-                                    <option value="Microbiologie">Microbiologie</option>
-                                    <option value="Biologie délocalisée">Biologie délocalisée</option>
-                                    <option value="Immuno-Séro-Electro">Immuno-Séro-Electro</option>
-                                </select>
+                            <div class="col-md-12" id="notesAffectationGroup" style="display: none;">
+                                <label class="form-label">Notes sur l'affectation</label>
+                                <textarea class="form-control" name="notes_affectation" rows="2" 
+                                          placeholder="Ex: Période d'essai, formation initiale requise, etc."></textarea>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Affectation Horaires</label>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="poste_nuit" id="gardeNuit">
-                                    <label class="form-check-label" for="gardeNuit">
-                                        <i class="bi bi-moon-stars text-info me-2"></i>
-                                        Affecté aux Gardes de Nuit
-                                    </label>
+                        </div>
+
+                        <!-- Infos du poste sélectionné -->
+                        <div id="posteDetailsCard" class="mt-3" style="display: none;">
+                            <div class="alert alert-light border">
+                                <h6 class="text-primary mb-2">
+                                    <i class="bi bi-info-circle-fill"></i>
+                                    Informations sur le poste sélectionné
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Département</small>
+                                        <strong id="poste_dept_name">-</strong>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Niveau requis</small>
+                                        <strong id="poste_niveau">-</strong>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Places disponibles</small>
+                                        <strong id="poste_places" class="text-success">-</strong>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Cadre specific fields -->
-                    <div id="cadreFields" style="display:none;" class="form-section">
-                        <div class="section-title">
-                            <i class="bi bi-briefcase"></i> Informations Spécifiques - Cadre
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Poste / Fonction</label>
-                                <input type="text" class="form-control" name="poste" placeholder="Ex: Responsable Métrologie, Responsable Qualité...">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Département Rattaché (Spécifique)</label>
-                                <input type="text" class="form-control" name="departement_cadre" placeholder="Département ou service">
-                            </div>
-                        </div>
-                    </div>
+                <!-- Informations spécifiques par type -->
+                <div id="specificFields"></div>
 
-                    <!-- Boutons d'action -->
-                    <div class="d-flex gap-2 mt-4">
-                        <button type="submit" class="btn btn-personnel-primary">
-                            <i class="bi bi-save me-2"></i> Enregistrer le Personnel
+                <!-- Boutons d'action -->
+                <div class="card">
+                    <div class="card-body">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-save me-2"></i> Créer le Personnel
                         </button>
-                        <a href="/personnel/list" class="btn btn-personnel-secondary">
+                        <a href="/personnel/list" class="btn btn-secondary btn-lg">
                             <i class="bi bi-x-circle me-2"></i> Annuler
                         </a>
-                        <button type="reset" class="btn btn-outline-warning">
-                            <i class="bi bi-arrow-clockwise me-2"></i> Réinitialiser
-                        </button>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
-        // Préfixes pour les matricules
-        const matriculePrefixes = {
-            'Biologiste': 'BIO',
-            'Technicien': 'TECH',
-            'Cadre': 'CAD',
-            'Secrétaire': 'SEC',
-            'Préleveur': 'PREL',
-            'Agent Logistique': 'LOG'
-        };
+        let postesData = [];
 
-        let matriculeCounters = {};
-
-        async function loadMatriculeCounters() {
-            try {
-                const response = await fetch('/personnel/api/list');
-                const data = await response.json();
-                const personnel = data.data;
-
-                Object.keys(matriculePrefixes).forEach(type => {
-                    matriculeCounters[type] = 0;
-                });
-
-                personnel.forEach(p => {
-                    const prefix = matriculePrefixes[p.type_personnel];
-                    if (prefix && p.matricule.startsWith(prefix)) {
-                        const num = parseInt(p.matricule.replace(prefix, ''));
-                        if (!isNaN(num) && num > matriculeCounters[p.type_personnel]) {
-                            matriculeCounters[p.type_personnel] = num;
-                        }
-                    }
-                });
-
-                console.log('Compteurs chargés:', matriculeCounters);
-            } catch (err) {
-                console.error('Erreur lors du chargement des compteurs:', err);
-                Object.keys(matriculePrefixes).forEach(type => {
-                    matriculeCounters[type] = 0;
-                });
-            }
-        }
-
-        function generateMatricule(type) {
-            if (!type || !matriculePrefixes[type]) {
-                return '';
-            }
-
-            const prefix = matriculePrefixes[type];
-            const counter = (matriculeCounters[type] || 0) + 1;
-            const matricule = prefix + String(counter).padStart(3, '0');
+        // Charger les postes disponibles au chargement de la page
+        $(document).ready(function() {
+            chargerPostes();
             
-            return matricule;
+            // Pré-remplir la date de début d'affectation avec la date d'embauche
+            $('input[name="date_embauche"]').on('change', function() {
+                $('#dateDebutAffectation').val($(this).val());
+            });
+        });
+
+        // Charger les postes via API
+        async function chargerPostes() {
+            try {
+                const response = await fetch('/rh/postes/api/disponibles');
+                const data = await response.json();
+                
+                if (data.success) {
+                    postesData = data.postes;
+                    afficherPostes(postesData);
+                }
+            } catch (error) {
+                console.error('Erreur chargement postes:', error);
+            }
         }
 
+        // Afficher les postes dans le select
+        function afficherPostes(postes) {
+            const select = $('#posteSelect');
+            select.find('option:not(:first)').remove();
+            
+            if (postes.length === 0) {
+                select.append('<option value="" disabled>Aucun poste disponible</option>');
+                return;
+            }
+            
+            // Grouper par département
+            const postesByDept = {};
+            postes.forEach(poste => {
+                const dept = poste.departement_nom || 'Sans département';
+                if (!postesByDept[dept]) {
+                    postesByDept[dept] = [];
+                }
+                postesByDept[dept].push(poste);
+            });
+            
+            // Ajouter les options groupées
+            Object.keys(postesByDept).sort().forEach(dept => {
+                const optgroup = $('<optgroup>').attr('label', dept);
+                
+                postesByDept[dept].forEach(poste => {
+                    const disponibles = poste.postes_vacants || 0;
+                    const option = $('<option>')
+                        .val(poste.id)
+                        .text(`${poste.titre} (${disponibles} place${disponibles > 1 ? 's' : ''} disponible${disponibles > 1 ? 's' : ''})`)
+                        .data('poste', poste);
+                    
+                    if (disponibles === 0) {
+                        option.prop('disabled', true).text(`${poste.titre} (Complet)`);
+                    }
+                    
+                    optgroup.append(option);
+                });
+                
+                select.append(optgroup);
+            });
+        }
+
+        // Filtrer les postes par département sélectionné
+        $('#departementSelect').on('change', function() {
+            const deptId = parseInt($(this).val());
+            
+            if (!deptId) {
+                afficherPostes(postesData);
+                return;
+            }
+            
+            const postesFiltres = postesData.filter(p => p.departement_id === deptId);
+            afficherPostes(postesFiltres);
+            
+            // Réinitialiser la sélection du poste
+            $('#posteSelect').val('');
+            $('#posteDetailsCard').hide();
+        });
+
+        // Gestion de la sélection du poste
+        $('#posteSelect').on('change', function() {
+            const posteId = $(this).val();
+            
+            if (!posteId) {
+                $('#dateAffectationGroup, #notesAffectationGroup, #posteDetailsCard').hide();
+                $('#dateDebutAffectation').removeAttr('required');
+                return;
+            }
+            
+            // Afficher les champs d'affectation
+            $('#dateAffectationGroup, #notesAffectationGroup').show();
+            $('#dateDebutAffectation').attr('required', 'required');
+            
+            // Afficher les détails du poste
+            const poste = $(this).find(':selected').data('poste');
+            if (poste) {
+                $('#poste_dept_name').text(poste.departement_nom || '-');
+                $('#poste_niveau').text(poste.niveau || '-');
+                $('#poste_places').text(poste.postes_vacants || 0);
+                $('#posteDetailsCard').show();
+            }
+        });
+
+        // Gestion dynamique des champs spécifiques
         $('#typePersonnel').on('change', function() {
             const type = $(this).val();
+            const container = $('#specificFields');
             
-            $('#biologisteFields, #technicienFields, #cadreFields').hide();
+            container.empty();
             
-            if(type === 'Biologiste') {
-                $('#biologisteFields').slideDown();
-            } else if(type === 'Technicien') {
-                $('#technicienFields').slideDown();
-            } else if(type === 'Cadre') {
-                $('#cadreFields').slideDown();
-            }
-            
-            if (type) {
-                const matricule = generateMatricule(type);
-                $('#matricule').val(matricule);
-                $('#matriculeInfo').html(`
-                    <i class="bi bi-check-circle text-success"></i> 
-                    Matricule généré: <strong>${matricule}</strong>
+            if (type === 'Biologiste') {
+                container.html(`
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-hospital me-2"></i>
+                                Informations Biologiste
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Spécialité</label>
+                                    <select class="form-select" name="specialite">
+                                        <option value="">Sélectionner...</option>
+                                        <option value="Biochimie">Biochimie</option>
+                                        <option value="Hématologie">Hématologie</option>
+                                        <option value="Microbiologie">Microbiologie</option>
+                                        <option value="Immunologie">Immunologie</option>
+                                        <option value="Biologie Moléculaire">Biologie Moléculaire</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mt-4">
+                                        <input type="checkbox" class="form-check-input" name="responsable_assurance_qualite" value="1" id="raq">
+                                        <label class="form-check-label" for="raq">
+                                            Responsable Assurance Qualité
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 `);
-            } else {
-                $('#matricule').val('');
-                $('#matriculeInfo').text('Généré automatiquement');
+            } else if (type === 'Technicien') {
+                container.html(`
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-tools me-2"></i>
+                                Informations Technicien
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Département</label>
+                                    <input type="text" class="form-control" name="departement" placeholder="Ex: Biochimie">
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mt-4">
+                                        <input type="checkbox" class="form-check-input" name="poste_nuit" value="1" id="nuit">
+                                        <label class="form-check-label" for="nuit">
+                                            Travaille de nuit
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            } else if (type === 'Cadre') {
+                container.html(`
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-briefcase me-2"></i>
+                                Informations Cadre
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Poste</label>
+                                    <input type="text" class="form-control" name="poste" placeholder="Ex: Directeur">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Département</label>
+                                    <input type="text" class="form-control" name="departement_cadre" placeholder="Ex: Direction">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
             }
         });
 
+        // Validation avant soumission
         $('#personnelForm').on('submit', function(e) {
-            const type = $('#typePersonnel').val();
-            if (!type) {
-                e.preventDefault();
-                alert('Veuillez sélectionner un type de personnel');
-                return false;
-            }
-
-            const matricule = $('#matricule').val();
-            if (!matricule) {
-                e.preventDefault();
-                alert('Erreur lors de la génération du matricule');
-                return false;
-            }
-
-            if (!confirm(`Confirmer l'ajout du personnel avec le matricule ${matricule} ?`)) {
-                e.preventDefault();
-                return false;
-            }
-        });
-
-        $('button[type="reset"]').on('click', function() {
-            setTimeout(() => {
-                $('#matricule').val('');
-                $('#matriculeInfo').text('Généré automatiquement');
-                $('#biologisteFields, #technicienFields, #cadreFields').hide();
-            }, 100);
-        });
-
-        $(document).ready(async function() {
-            await loadMatriculeCounters();
+            const posteId = $('#posteSelect').val();
             
-            const today = new Date().toISOString().split('T')[0];
-            $('input[name="date_embauche"]').val(today);
-
-            console.log('Page chargée, compteurs initialisés');
+            if (posteId && !$('#dateDebutAffectation').val()) {
+                e.preventDefault();
+                alert('Veuillez saisir une date de début d\'affectation');
+                $('#dateDebutAffectation').focus();
+                return false;
+            }
         });
     </script>
 </body>

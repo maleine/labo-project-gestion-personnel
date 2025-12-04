@@ -199,7 +199,7 @@
                     <div class="department-section">
                         <div class="text-center">
                             <div class="department-title">
-                                <h5 class="mb-0"><i class="bi bi-diagram-3 text-primary me-2"></i>Départements - BIOLOGISTES</h5>
+                                <h5 class="mb-0"><i class="bi bi-mortarboard text-primary me-2"></i>Départements - BIOLOGISTES</h5>
                             </div>
                         </div>
                         <div id="biologistesSection" class="org-level"></div>
@@ -487,26 +487,36 @@
                 const agents = orgData.support.agents ? orgData.support.agents.length : 0;
                 
                 if (secretaires > 0 || preleveurs > 0 || agents > 0) {
-                    html = `
-                        <div class="org-node support" onclick="showNodePersonnel('support', 'Secrétaire')">
-                            <i class="bi bi-person-workspace fs-2"></i>
-                            <h6 class="mt-2">Secrétaires</h6>
-                            <small>Administration & Accueil</small>
-                            <span class="badge-count">${secretaires}</span>
-                        </div>
-                        <div class="org-node support" onclick="showNodePersonnel('support', 'Préleveur')">
-                            <i class="bi bi-heart-half fs-2"></i>
-                            <h6 class="mt-2">Préleveurs</h6>
-                            <small>Prélèvements</small>
-                            <span class="badge-count">${preleveurs}</span>
-                        </div>
-                        <div class="org-node support" onclick="showNodePersonnel('support', 'Agent Logistique')">
-                            <i class="bi bi-box-seam fs-2"></i>
-                            <h6 class="mt-2">Agents Logistiques</h6>
-                            <small>Logistique</small>
-                            <span class="badge-count">${agents}</span>
-                        </div>
-                    `;
+                    if (secretaires > 0) {
+                        html += `
+                            <div class="org-node support" onclick="showNodePersonnel('support', 'Secrétaire')">
+                                <i class="bi bi-person-workspace fs-2"></i>
+                                <h6 class="mt-2">Secrétaires</h6>
+                                <small>Administration & Accueil</small>
+                                <span class="badge-count">${secretaires}</span>
+                            </div>
+                        `;
+                    }
+                    if (preleveurs > 0) {
+                        html += `
+                            <div class="org-node support" onclick="showNodePersonnel('support', 'Préleveur')">
+                                <i class="bi bi-droplet-half fs-2"></i>
+                                <h6 class="mt-2">Préleveurs</h6>
+                                <small>Prélèvements</small>
+                                <span class="badge-count">${preleveurs}</span>
+                            </div>
+                        `;
+                    }
+                    if (agents > 0) {
+                        html += `
+                            <div class="org-node support" onclick="showNodePersonnel('support', 'Agent Logistique')">
+                                <i class="bi bi-box-seam fs-2"></i>
+                                <h6 class="mt-2">Agents Logistiques</h6>
+                                <small>Logistique & Support</small>
+                                <span class="badge-count">${agents}</span>
+                            </div>
+                        `;
+                    }
                 } else {
                     html = `
                         <div class="empty-state">

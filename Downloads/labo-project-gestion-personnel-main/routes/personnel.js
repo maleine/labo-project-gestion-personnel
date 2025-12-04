@@ -74,48 +74,141 @@ router.get('/edit/:id', async (req, res) => {
   }
 });
 
-// Create personnel - INCHANGÉ (le modèle gère déjà departement_id)
+// ==================== routes/personnel.js (ROUTE CREATE MODIFIÉE) ====================
+
+// Remplacer la route POST '/create' par celle-ci :
+
+// Créer personnel avec affectation poste optionnelle
 router.post('/create', async (req, res) => {
+  const pool = await getConnection();
+  const transaction = pool.transaction();
+  
   try {
-    const personnelId = await Personnel.create(req.body);
-    const pool = await getConnection();
+    await transaction.begin();
     
-    // Insert type-specific data
+    // 1. Créer le personnel
+    const personnelId = await Personnel.create(req.body);
+    console.log('Personnel créé avec ID:', personnelId);
+    
+    // 2. Insérer les données spécifiques selon le type
     if (req.body.type_personnel === 'Biologiste') {
-      await pool.request()
+      await transaction.request()
         .input('personnel_id', sql.Int, personnelId)
-        .input('specialite', sql.VarChar, req.body.specialite)
+        .input('specialite', sql.VarChar, req.body.specialite || null)
         .input('responsable_assurance_qualite', sql.Bit, req.body.responsable_assurance_qualite ? 1 : 0)
         .query(`
           INSERT INTO Biologistes (personnel_id, specialite, responsable_assurance_qualite)
           VALUES (@personnel_id, @specialite, @responsable_assurance_qualite)
         `);
     } else if (req.body.type_personnel === 'Technicien') {
-      await pool.request()
+      await transaction.request()
         .input('personnel_id', sql.Int, personnelId)
-        .input('departement', sql.VarChar, req.body.departement)
+        .input('departement', sql.VarChar, req.body.departement || null)
         .input('poste_nuit', sql.Bit, req.body.poste_nuit ? 1 : 0)
         .query(`
           INSERT INTO Techniciens (personnel_id, departement, poste_nuit)
           VALUES (@personnel_id, @departement, @poste_nuit)
         `);
     } else if (req.body.type_personnel === 'Cadre') {
-      await pool.request()
+      await transaction.request()
         .input('personnel_id', sql.Int, personnelId)
-        .input('poste', sql.VarChar, req.body.poste)
-        .input('departement', sql.VarChar, req.body.departement_cadre)
+        .input('poste', sql.VarChar, req.body.poste || null)
+        .input('departement', sql.VarChar, req.body.departement_cadre || null)
         .query(`
           INSERT INTO Cadres (personnel_id, poste, departement)
           VALUES (@personnel_id, @poste, @departement)
         `);
     }
     
-    res.redirect('/personnel/list');
+    // 3. Affecter à un poste si spécifié
+    if (req.body.poste_id && req.body.poste_id !== '') {
+      const posteId = parseInt(req.body.poste_id);
+      const dateDebut = req.body.date_debut_affectation || req.body.date_embauche;
+      const notes = req.body.notes_affectation || null;
+      
+      console.log('Affectation au poste:', { posteId, personnelId, dateDebut, notes });
+      
+      // Vérifier la disponibilité du poste
+      const checkResult = await transaction.request()
+        .input('poste_id', sql.Int, posteId)
+        .query(`
+          SELECT 
+            p.nb_postes_disponibles,
+            COUNT(ap.id) as postes_occupes,
+            p.titre
+          FROM Postes p
+          LEFT JOIN AffectationsPostes ap ON p.id = ap.poste_id AND ap.statut = 'En cours'
+          WHERE p.id = @poste_id
+          GROUP BY p.nb_postes_disponibles, p.titre
+        `);
+      
+      if (checkResult.recordset.length === 0) {
+        throw new Error('Poste non trouvé');
+      }
+      
+      const posteStats = checkResult.recordset[0];
+      if (posteStats.postes_occupes >= posteStats.nb_postes_disponibles) {
+        throw new Error(`Le poste "${posteStats.titre}" est complet (${posteStats.nb_postes_disponibles} place(s) disponible(s))`);
+      }
+      
+      // Créer l'affectation
+      await transaction.request()
+        .input('poste_id', sql.Int, posteId)
+        .input('personnel_id', sql.Int, personnelId)
+        .input('date_debut', sql.Date, dateDebut)
+        .input('notes', sql.Text, notes)
+        .query(`
+          INSERT INTO AffectationsPostes (poste_id, personnel_id, date_debut, statut, notes)
+          VALUES (@poste_id, @personnel_id, @date_debut, 'En cours', @notes)
+        `);
+      
+      console.log('Affectation créée avec succès');
+    }
+    
+    await transaction.commit();
+    
+    res.redirect('/personnel/list?success=Personnel créé avec succès' + 
+                 (req.body.poste_id ? ' et affecté au poste' : ''));
+    
   } catch (err) {
+    await transaction.rollback();
+    console.error('Erreur lors de la création:', err);
     res.status(500).send('Erreur lors de la création: ' + err.message);
   }
 });
 
+// AJOUTER cette nouvelle route API pour charger les postes disponibles
+router.get('/api/postes-disponibles', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const result = await pool.request().query(`
+      SELECT 
+        p.id, p.code, p.titre, p.departement_id, p.niveau,
+        d.nom as departement_nom,
+        p.nb_postes_disponibles,
+        COUNT(ap.id) as postes_occupes,
+        (p.nb_postes_disponibles - COUNT(ap.id)) as postes_vacants
+      FROM Postes p
+      LEFT JOIN Departements d ON p.departement_id = d.id
+      LEFT JOIN AffectationsPostes ap ON p.id = ap.poste_id AND ap.statut = 'En cours'
+      WHERE p.statut = 'Actif'
+      GROUP BY p.id, p.code, p.titre, p.departement_id, p.niveau, d.nom, p.nb_postes_disponibles
+      HAVING (p.nb_postes_disponibles - COUNT(ap.id)) > 0
+      ORDER BY d.nom, p.titre
+    `);
+    
+    res.json({
+      success: true,
+      postes: result.recordset
+    });
+  } catch (err) {
+    console.error('Erreur chargement postes:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
 // Update personnel - INCHANGÉ (le modèle gère déjà departement_id)
 router.post('/update/:id', async (req, res) => {
   try {

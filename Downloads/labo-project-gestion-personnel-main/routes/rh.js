@@ -106,7 +106,47 @@ router.get('/recrutements/:id/edit', async (req, res) => {
 
 // ==================== À AJOUTER/REMPLACER dans routes/rh.js ====================
 // Remplacer la route existante router.get('/postes/api/:id', ...) par celle-ci
+// ==================== À AJOUTER dans routes/rh.js ====================
+// PLACER cette route AVANT les autres routes de postes (avant '/postes')
 
+// API: Liste des postes disponibles (avec places vacantes)
+router.get('/postes/api/disponibles', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const result = await pool.request().query(`
+      SELECT 
+        p.id, 
+        p.code, 
+        p.titre, 
+        p.departement_id, 
+        p.niveau,
+        p.nb_postes_disponibles,
+        d.nom as departement_nom,
+        COUNT(ap.id) as postes_occupes,
+        (p.nb_postes_disponibles - COUNT(ap.id)) as postes_vacants
+      FROM Postes p
+      LEFT JOIN Departements d ON p.departement_id = d.id
+      LEFT JOIN AffectationsPostes ap ON p.id = ap.poste_id AND ap.statut = 'En cours'
+      WHERE p.statut = 'Actif'
+      GROUP BY 
+        p.id, p.code, p.titre, p.departement_id, p.niveau, 
+        p.nb_postes_disponibles, d.nom
+      HAVING (p.nb_postes_disponibles - COUNT(ap.id)) > 0
+      ORDER BY d.nom, p.titre
+    `);
+    
+    res.json({
+      success: true,
+      postes: result.recordset
+    });
+  } catch (err) {
+    console.error('Erreur API postes disponibles:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
 // API: Détails d'un poste avec personnel et compétences (CORRIGÉ)
 router.get('/postes/api/:id', async (req, res) => {
   try {
@@ -858,12 +898,14 @@ router.post('/competences/:id/delete', async (req, res) => {
   }
 });
 
-// Détails d'une compétence
+// Détails d'une compétence (MODIFIÉ - avec postes)
 router.get('/competences/:id', async (req, res) => {
   try {
     const competence = await Competence.getById(req.params.id);
     
     const pool = await getConnection();
+    
+    // Personnel ayant cette compétence
     const personnels = await pool.request()
       .input('competenceId', sql.Int, req.params.id)
       .query(`
@@ -876,9 +918,34 @@ router.get('/competences/:id', async (req, res) => {
         ORDER BY p.nom, p.prenom
       `);
 
+    // Postes associés à cette compétence
+    const postesAssocies = await pool.request()
+      .input('competenceId', sql.Int, req.params.id)
+      .query(`
+        SELECT 
+          po.id, po.code, po.titre,
+          d.nom as departement_nom,
+          cpo.niveau_requis
+        FROM Postes po
+        INNER JOIN CompetencesPostes cpo ON po.id = cpo.poste_id
+        LEFT JOIN Departements d ON po.departement_id = d.id
+        WHERE cpo.competence_id = @competenceId
+        ORDER BY d.nom, po.titre
+      `);
+
+    // Tous les personnels actifs pour le formulaire
+    const tousPersonnels = await Personnel.getAll();
+    
+    // Tous les postes actifs pour le formulaire
+    const tousPostes = await Poste.getAll();
+
     res.render('rh/competences/details', {
       competence,
       personnels: personnels.recordset,
+      postesAssocies: postesAssocies.recordset,
+      tousPersonnels: tousPersonnels,
+      tousPostes: tousPostes,
+      canManage: true,
       currentPage: 'competences'
     });
   } catch (err) {
@@ -1506,5 +1573,46 @@ router.get('/evaluations/personnel/:id', async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// API: Liste du personnel actif (pour les formulaires d'affectation)
+router.get('/api/personnel-actif', async (req, res) => {
+  try {
+    const personnel = await Personnel.getAll();
+    res.json({
+      success: true,
+      personnel: personnel
+    });
+  } catch (err) {
+    console.error('Erreur API personnel actif:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+// Dissocier une compétence d'un poste
+router.post('/competences/dissocier-poste', async (req, res) => {
+  try {
+    const { competence_id, poste_id } = req.body;
+    
+    const pool = await getConnection();
+    await pool.request()
+      .input('competence_id', sql.Int, competence_id)
+      .input('poste_id', sql.Int, poste_id)
+      .query('DELETE FROM CompetencesPostes WHERE competence_id = @competence_id AND poste_id = @poste_id');
+    
+    res.json({ success: true, message: 'Compétence dissociée du poste' });
+  } catch (err) {
+    console.error('Erreur dissociation compétence poste:', err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la dissociation' });
+  }
+});
+
+
+// ==================== À AJOUTER dans routes/rh.js ====================
+// PLACER cette route AVANT les autres routes de postes (avant '/postes')
+
+// API: Liste des postes disponibles (avec places vacantes)
 
 module.exports = router;

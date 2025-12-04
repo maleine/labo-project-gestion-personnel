@@ -1,4 +1,4 @@
-// ==================== models/Rapport.js ====================
+// ==================== models/Rapport.js (Amélioré) ====================
 const { getConnection, sql } = require('../database/config');
 
 class Rapport {
@@ -27,7 +27,7 @@ class Rapport {
     }
   }
 
-  // Statistiques par département
+  // Statistiques par département - AMÉLIORÉ
   static async getStatsByDepartment() {
     try {
       const pool = await getConnection();
@@ -35,7 +35,7 @@ class Rapport {
       // Stats Techniciens par département
       const techniciensResult = await pool.request().query(`
         SELECT 
-          t.departement,
+          ISNULL(t.departement, 'Non affecté') as departement,
           COUNT(*) as nombre,
           SUM(CASE WHEN t.poste_nuit = 1 THEN 1 ELSE 0 END) as poste_nuit
         FROM Techniciens t
@@ -47,7 +47,7 @@ class Rapport {
       // Stats Biologistes par spécialité
       const biologistesResult = await pool.request().query(`
         SELECT 
-          b.specialite as departement,
+          ISNULL(b.specialite, 'Non spécifié') as departement,
           COUNT(*) as nombre,
           SUM(CASE WHEN b.responsable_assurance_qualite = 1 THEN 1 ELSE 0 END) as responsables_qualite
         FROM Biologistes b
@@ -59,12 +59,12 @@ class Rapport {
       // Stats Cadres par département
       const cadresResult = await pool.request().query(`
         SELECT 
-          c.departement,
+          ISNULL(c.departement, 'Direction') as departement,
           COUNT(*) as nombre,
           c.poste
         FROM Cadres c
         INNER JOIN Personnel p ON c.personnel_id = p.id
-        WHERE p.statut = 'Actif' AND c.departement IS NOT NULL
+        WHERE p.statut = 'Actif'
         GROUP BY c.departement, c.poste
       `);
 
@@ -115,11 +115,11 @@ class Rapport {
           break;
         case 'quarter':
           groupBy = 'YEAR(date_embauche), DATEPART(QUARTER, date_embauche)';
-          dateFormat = 'FORMAT(date_embauche, \'yyyy-Q\') + CAST(DATEPART(QUARTER, date_embauche) AS VARCHAR)';
+          dateFormat = 'FORMAT(date_embauche, \'yyyy\') + \'-Q\' + CAST(DATEPART(QUARTER, date_embauche) AS VARCHAR)';
           break;
         default: // year
           groupBy = 'YEAR(date_embauche)';
-          dateFormat = 'YEAR(date_embauche)';
+          dateFormat = 'CAST(YEAR(date_embauche) AS VARCHAR)';
       }
 
       const result = await pool.request().query(`
@@ -138,40 +138,38 @@ class Rapport {
     }
   }
 
-  // Analyse d'ancienneté
+  // Analyse d'ancienneté - AMÉLIORÉ
   static async getAncienneteAnalysis() {
     try {
       const pool = await getConnection();
       const result = await pool.request().query(`
+        WITH AncienneteCategories AS (
+          SELECT 
+            CASE 
+              WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) < 1 THEN 'Moins d''un an'
+              WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) BETWEEN 1 AND 2 THEN '1-3 ans'
+              WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) BETWEEN 3 AND 4 THEN '3-5 ans'
+              WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) BETWEEN 5 AND 9 THEN '5-10 ans'
+              ELSE 'Plus de 10 ans'
+            END as tranche_anciennete,
+            type_personnel,
+            CASE 
+              WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) < 1 THEN 1
+              WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) BETWEEN 1 AND 2 THEN 2
+              WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) BETWEEN 3 AND 4 THEN 3
+              WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) BETWEEN 5 AND 9 THEN 4
+              ELSE 5
+            END as ordre
+          FROM Personnel
+          WHERE statut = 'Actif'
+        )
         SELECT 
-          CASE 
-            WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) < 1 THEN 'Moins d\'un an'
-            WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) BETWEEN 1 AND 3 THEN '1-3 ans'
-            WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) BETWEEN 3 AND 5 THEN '3-5 ans'
-            WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) BETWEEN 5 AND 10 THEN '5-10 ans'
-            ELSE 'Plus de 10 ans'
-          END as tranche_anciennete,
+          tranche_anciennete,
           COUNT(*) as nombre,
           type_personnel
-        FROM Personnel
-        WHERE statut = 'Actif'
-        GROUP BY 
-          CASE 
-            WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) < 1 THEN 'Moins d\'un an'
-            WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) BETWEEN 1 AND 3 THEN '1-3 ans'
-            WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) BETWEEN 3 AND 5 THEN '3-5 ans'
-            WHEN DATEDIFF(YEAR, date_embauche, GETDATE()) BETWEEN 5 AND 10 THEN '5-10 ans'
-            ELSE 'Plus de 10 ans'
-          END,
-          type_personnel
-        ORDER BY 
-          CASE tranche_anciennete
-            WHEN 'Moins d\'un an' THEN 1
-            WHEN '1-3 ans' THEN 2
-            WHEN '3-5 ans' THEN 3
-            WHEN '5-10 ans' THEN 4
-            ELSE 5
-          END
+        FROM AncienneteCategories
+        GROUP BY tranche_anciennete, type_personnel, ordre
+        ORDER BY ordre
       `);
       return result.recordset;
     } catch (err) {
@@ -180,18 +178,21 @@ class Rapport {
     }
   }
 
-  // Répartition par genre (si disponible dans la base)
+  // Répartition par genre - AMÉLIORÉ avec logique plus robuste
   static async getGenderDistribution() {
     try {
       const pool = await getConnection();
       
-      // Note: Cette requête suppose que vous avez un champ 'genre' dans votre table Personnel
-      // Si ce n'est pas le cas, vous pouvez l'ajouter ou retourner des données simulées
       const result = await pool.request().query(`
         SELECT 
           CASE 
-            WHEN CHARINDEX('M.', nom) > 0 OR CHARINDEX('Mr', nom) > 0 THEN 'Homme'
-            WHEN CHARINDEX('Mme', nom) > 0 OR CHARINDEX('Mlle', nom) > 0 THEN 'Femme'
+            WHEN prenom LIKE '%a' OR prenom LIKE '%e' OR 
+                 nom LIKE 'Mme%' OR nom LIKE 'Mlle%' OR
+                 prenom IN ('Aminata', 'Fatou', 'Aissata', 'Mariama', 'Maleine', 'Awa') 
+            THEN 'Femme'
+            WHEN prenom LIKE '%ou' OR nom LIKE 'M.%' OR nom LIKE 'Mr%' OR
+                 prenom IN ('Moussa', 'Ibrahima', 'Amadou', 'Bassirou')
+            THEN 'Homme'
             ELSE 'Non spécifié'
           END as genre,
           COUNT(*) as nombre,
@@ -200,8 +201,13 @@ class Rapport {
         WHERE statut = 'Actif'
         GROUP BY 
           CASE 
-            WHEN CHARINDEX('M.', nom) > 0 OR CHARINDEX('Mr', nom) > 0 THEN 'Homme'
-            WHEN CHARINDEX('Mme', nom) > 0 OR CHARINDEX('Mlle', nom) > 0 THEN 'Femme'
+            WHEN prenom LIKE '%a' OR prenom LIKE '%e' OR 
+                 nom LIKE 'Mme%' OR nom LIKE 'Mlle%' OR
+                 prenom IN ('Aminata', 'Fatou', 'Aissata', 'Mariama', 'Maleine', 'Awa')
+            THEN 'Femme'
+            WHEN prenom LIKE '%ou' OR nom LIKE 'M.%' OR nom LIKE 'Mr%' OR
+                 prenom IN ('Moussa', 'Ibrahima', 'Amadou', 'Bassirou')
+            THEN 'Homme'
             ELSE 'Non spécifié'
           END,
           type_personnel
@@ -260,24 +266,22 @@ class Rapport {
     }
   }
 
-  // Export vers Excel (placeholder - nécessite une bibliothèque comme exceljs)
+  // Export vers Excel (placeholder)
   static async exportToExcel(type) {
     try {
-      // TODO: Implémenter avec exceljs ou xlsx
       const data = await this.getDetailedStatistics();
-      return JSON.stringify(data); // Temporaire
+      return JSON.stringify(data);
     } catch (err) {
       console.error('Erreur dans exportToExcel:', err);
       throw err;
     }
   }
 
-  // Export vers PDF (placeholder - nécessite une bibliothèque comme pdfkit)
+  // Export vers PDF (placeholder)
   static async exportToPDF(type) {
     try {
-      // TODO: Implémenter avec pdfkit ou puppeteer
       const data = await this.getDetailedStatistics();
-      return JSON.stringify(data); // Temporaire
+      return JSON.stringify(data);
     } catch (err) {
       console.error('Erreur dans exportToPDF:', err);
       throw err;
@@ -289,7 +293,6 @@ class Rapport {
     try {
       const pool = await getConnection();
       
-      // Statistiques principales
       const mainStats = await pool.request().query(`
         SELECT 
           COUNT(*) as total_personnel,
@@ -302,14 +305,12 @@ class Rapport {
         FROM Personnel
       `);
 
-      // Embauches récentes (derniers 30 jours)
       const recentHires = await pool.request().query(`
         SELECT COUNT(*) as nouvelles_embauches
         FROM Personnel
         WHERE date_embauche >= DATEADD(DAY, -30, GETDATE())
       `);
 
-      // Équipes actives
       const activeTeams = await pool.request().query(`
         SELECT COUNT(*) as equipes_actives
         FROM Equipes

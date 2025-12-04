@@ -1,4 +1,4 @@
-// ==================== main.js / app.js avec Module Présence ====================
+// ==================== main.js / app.js AVEC SYSTÈME DE LICENCE ====================
 
 const { app, BrowserWindow } = require('electron');
 const express = require('express');
@@ -8,6 +8,8 @@ const bodyParser = require('body-parser');
 const cron = require('node-cron');
 const { getConnection } = require('./database/config');
 const { injectPermissions, checkModuleAccess } = require('./middleware/accessControl');
+const { requireLicence } = require('./middleware/licenceCheck');
+const licenceManager = require('./utils/licenceManager');
 
 // ==================== EXPRESS SERVER ====================
 const server = express();
@@ -60,10 +62,19 @@ const absencesRoutes = require('./routes/absences');
 const exportsRoutes = require('./routes/exports');
 const rapportsRoutes = require('./routes/rapports');
 const presenceRoutes = require('./routes/presence');
+const licenceRoutes = require('./routes/licence');
 const { requireAuth } = require('./routes/auth');
 
-// Routes publiques
+// ==================== ROUTES LICENCE (PRIORITAIRE) ====================
+// Les routes de licence ne nécessitent pas d'authentification
+server.use('/licence', licenceRoutes);
+
+// Routes publiques (auth)
 server.use('/auth', authRoutes);
+
+// ==================== MIDDLEWARE LICENCE ====================
+// Vérifier la licence pour TOUTES les routes protégées
+server.use(requireLicence);
 
 // Routes protégées avec contrôle d'accès par module
 server.use('/personnel', requireAuth, checkModuleAccess('personnel'), personnelRoutes);
@@ -75,12 +86,17 @@ server.use('/absences', requireAuth, checkModuleAccess('absences'), absencesRout
 server.use('/exports', requireAuth, checkModuleAccess('exports'), exportsRoutes);
 server.use('/rapports', requireAuth, checkModuleAccess('rapports'), rapportsRoutes);
 server.use('/presence', requireAuth, checkModuleAccess('presence'), presenceRoutes);
-
-// Dashboard route
 server.use('/dashboard', requireAuth, checkModuleAccess('dashboard'), dashboardRoutes);
 
 // Page d'accueil - redirection intelligente
-server.get('/', (req, res) => {
+server.get('/', async (req, res) => {
+  // Vérifier d'abord la licence
+  const licenceStatus = await licenceManager.checkLicence();
+  
+  if (!licenceStatus.valid) {
+    return res.redirect('/licence/activate');
+  }
+  
   if (req.session.userId) {
     const { getDefaultRoute } = require('./middleware/accessControl');
     const defaultRoute = getDefaultRoute(req.session.type_personnel);
@@ -91,7 +107,6 @@ server.get('/', (req, res) => {
 });
 
 // ==================== SYNCHRONISATION AUTOMATIQUE ZKTECO ====================
-// Synchronisation toutes les 30 minutes, de 6h à 20h (lundi à vendredi)
 cron.schedule('*/30 6-20 * * 1-5', async () => {
   console.log('🔄 Synchronisation automatique ZKTeco...');
   try {
@@ -158,7 +173,7 @@ function createWindow() {
       contextIsolation: true
     },
     icon: path.join(__dirname, 'public/images/icon.png'),
-    title: 'Gestion Personnel Laboratoire - Lab Manager',
+    title: 'BioClinique - Gestion Laboratoire',
     backgroundColor: '#f5f5f5',
     show: false,
     autoHideMenuBar: true
@@ -192,20 +207,48 @@ async function checkDatabaseConnection() {
   }
 }
 
+// ==================== VÉRIFICATION LICENCE AU DÉMARRAGE ====================
+async function checkLicenceOnStartup() {
+  console.log('🔐 Vérification de la licence...');
+  const status = await licenceManager.checkLicence();
+  
+  if (status.valid) {
+    const info = licenceManager.getLicenceInfo();
+    console.log('✅ Licence valide');
+    console.log(`   Expire le: ${info.expiresAt}`);
+    console.log(`   Jours restants: ${info.daysRemaining}`);
+    
+    // Avertissement si moins de 30 jours
+    if (info.daysRemaining <= 30) {
+      console.log(`⚠️  ATTENTION: Licence expire dans ${info.daysRemaining} jours`);
+    }
+  } else {
+    console.log('⚠️  Aucune licence valide - Activation requise');
+  }
+  
+  return status.valid;
+}
+
 // ==================== APPLICATION STARTUP ====================
 app.whenReady().then(async () => {
-  console.log('🏥 LAB MANAGER - Démarrage application');
+  console.log('🏥 BIOCLINIQUE - Démarrage application');
+  
   const dbConnected = await checkDatabaseConnection();
+  await checkLicenceOnStartup();
 
   server.listen(PORT, () => {
-    console.log(`🚀 Server Express: http://localhost:${PORT} - DB: ${dbConnected ? '✅ Connectée' : '❌ Déconnectée'}`);
+    console.log(`🚀 Server Express: http://localhost:${PORT} - DB: ${dbConnected ? '✅' : '❌'}`);
     createWindow();
   });
 
-  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+  app.on('activate', () => { 
+    if (BrowserWindow.getAllWindows().length === 0) createWindow(); 
+  });
 });
 
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('window-all-closed', () => { 
+  if (process.platform !== 'darwin') app.quit(); 
+});
 
 ['SIGTERM', 'SIGINT'].forEach(signal => {
   process.on(signal, () => {

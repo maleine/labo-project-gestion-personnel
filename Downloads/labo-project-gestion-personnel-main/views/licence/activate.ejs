@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activation de Licence - BioClinique</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .activation-card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 600px;
+      width: 100%;
+      overflow: hidden;
+    }
+    .card-header-custom {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    .card-header-custom h2 {
+      margin: 0;
+      font-weight: 600;
+    }
+    .card-header-custom .icon {
+      font-size: 4rem;
+      margin-bottom: 15px;
+      opacity: 0.9;
+    }
+    .card-body-custom {
+      padding: 40px;
+    }
+    .machine-id-box {
+      background: #f8f9fa;
+      border: 2px dashed #dee2e6;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+    .machine-id-label {
+      font-size: 0.85rem;
+      color: #6c757d;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .machine-id-value {
+      font-family: 'Courier New', monospace;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #495057;
+      word-break: break-all;
+    }
+    .licence-input {
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 15px;
+      font-size: 1.1rem;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      transition: all 0.3s;
+    }
+    .licence-input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    .btn-activate {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      padding: 15px 40px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      width: 100%;
+      transition: transform 0.2s;
+    }
+    .btn-activate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+    }
+    .help-text {
+      text-align: center;
+      color: #6c757d;
+      font-size: 0.9rem;
+      margin-top: 25px;
+      padding-top: 25px;
+      border-top: 1px solid #e0e0e0;
+    }
+    .licence-format {
+      background: #f0f4ff;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 5px;
+      font-size: 0.9rem;
+    }
+    .already-activated {
+      background: #d4edda;
+      border: 2px solid #28a745;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .badge-active {
+      background: #28a745;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="activation-card">
+    <div class="card-header-custom">
+      <div class="icon">
+        <i class="bi bi-shield-lock-fill"></i>
+      </div>
+      <h2>Activation de Licence</h2>
+      <p class="mb-0 mt-2" style="opacity: 0.9;">BioClinique - Gestion Laboratoire</p>
+    </div>
+    
+    <div class="card-body-custom">
+      <% if (message) { %>
+        <div class="alert alert-<%= message.type %> alert-dismissible fade show" role="alert">
+          <i class="bi bi-<%= message.type === 'success' ? 'check-circle' : 'exclamation-triangle' %>-fill me-2"></i>
+          <%= message.text %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+
+      <% if (licenceInfo && licenceInfo.isValid) { %>
+        <!-- Licence déjà activée -->
+        <div class="already-activated">
+          <div class="text-center mb-3">
+            <span class="status-badge badge-active">
+              <i class="bi bi-check-circle-fill me-2"></i>LICENCE ACTIVE
+            </span>
+          </div>
+          <div class="row text-center">
+            <div class="col-6 mb-2">
+              <small class="text-muted d-block">Activée le</small>
+              <strong><%= licenceInfo.activatedAt %></strong>
+            </div>
+            <div class="col-6 mb-2">
+              <small class="text-muted d-block">Expire le</small>
+              <strong><%= licenceInfo.expiresAt %></strong>
+            </div>
+            <div class="col-12 mt-2">
+              <small class="text-muted d-block">Jours restants</small>
+              <h3 class="mb-0 text-success"><%= licenceInfo.daysRemaining %> jours</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <a href="/dashboard" class="btn btn-success btn-lg">
+            <i class="bi bi-house-door-fill me-2"></i>Accéder à l'application
+          </a>
+          <hr class="my-4">
+          <form action="/licence/delete" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette licence ?')">
+            <button type="submit" class="btn btn-outline-danger">
+              <i class="bi bi-trash me-2"></i>Supprimer la licence
+            </button>
+          </form>
+        </div>
+      <% } else { %>
+        <!-- Formulaire d'activation -->
+        <div class="machine-id-box">
+          <div class="machine-id-label">
+            <i class="bi bi-laptop me-2"></i>ID Machine
+          </div>
+          <div class="machine-id-value">
+            <%= machineId %>
+          </div>
+        </div>
+
+        <div class="licence-format">
+          <strong><i class="bi bi-info-circle me-2"></i>Format de la clé :</strong>
+          <code class="ms-2">XXXXX-XXXXX-XXXXX</code>
+        </div>
+
+        <form action="/licence/activate" method="POST">
+          <div class="mb-4">
+            <label for="licenceKey" class="form-label fw-bold">
+              <i class="bi bi-key-fill me-2"></i>Clé de Licence
+            </label>
+            <input 
+              type="text" 
+              class="form-control licence-input" 
+              id="licenceKey" 
+              name="licenceKey" 
+              placeholder="XXXXX-XXXXX-XXXXX"
+              pattern="[A-Za-z0-9]{5}-[A-Za-z0-9]{5}-[A-Za-z0-9]{5}"
+              required
+              autofocus
+            >
+            <small class="form-text text-muted mt-2 d-block">
+              Entrez votre clé de licence fournie par votre administrateur
+            </small>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-activate">
+            <i class="bi bi-unlock-fill me-2"></i>Activer la Licence
+          </button>
+        </form>
+
+        <div class="help-text">
+          <i class="bi bi-question-circle me-2"></i>
+          <strong>Besoin d'aide ?</strong><br>
+          Contactez votre administrateur système pour obtenir une clé de licence<br>
+          <small class="text-muted">La clé est liée à l'ID machine affiché ci-dessus</small>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Auto-formater la clé de licence
+    document.getElementById('licenceKey')?.addEventListener('input', function(e) {
+      let value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      let formatted = '';
+      
+      for (let i = 0; i < value.length && i < 15; i++) {
+        if (i > 0 && i % 5 === 0) formatted += '-';
+        formatted += value[i];
+      }
+      
+      e.target.value = formatted;
+    });
+  </script>
+</body>
+</html>

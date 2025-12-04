@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -8,86 +7,211 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+   
+   <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+
+       
+    </style>
 </head>
 <body>
-   <%- include('partials/sidebar', { currentPage: 'personnel-list' }) %>
+    <%- include('partials/sidebar', { currentPage: 'personnel-add' }) %>
     
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-10 offset-md-2 px-4 py-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>Liste du Personnel</h2>
-                    <a href="/personnel/add" class="btn btn-primary">
-                        <i class="bi bi-person-plus me-2"></i> Ajouter Personnel
-                    </a>
-                </div>
+    <div class="main-content">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="bi bi-people-fill text-primary"></i> Gestion du Personnel</h2>
+                <p class="text-muted mb-0">Liste complète et affectations</p>
+            </div>
+            <a href="/personnel/add" class="btn btn-primary btn-lg">
+                <i class="bi bi-person-plus me-2"></i> Ajouter Personnel
+            </a>
+        </div>
 
-                <!-- Filters -->
-                <div class="card mb-4">
+        <!-- Statistiques -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card border-primary">
                     <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="form-label">Type de Personnel</label>
-                                <select class="form-select" id="filterType">
-                                    <option value="">Tous</option>
-                                    <option value="Biologiste">Biologiste</option>
-                                    <option value="Technicien">Technicien</option>
-                                    <option value="Cadre">Cadre</option>
-                                    <option value="Secrétaire">Secrétaire</option>
-                                    <option value="Préleveur">Préleveur</option>
-                                    <option value="Agent Logistique">Agent Logistique</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Département</label>
-                                <select class="form-select" id="filterDept">
-                                    <option value="">Tous</option>
-                                    <option value="Biochimie">Biochimie</option>
-                                    <option value="Hématologie">Hématologie</option>
-                                    <option value="Microbiologie">Microbiologie</option>
-                                    <option value="Biologie délocalisée">Biologie délocalisée</option>
-                                    <option value="Immuno-Séro-Electro">Immuno-Séro-Electro</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Statut</label>
-                                <select class="form-select" id="filterStatus">
-                                    <option value="Actif">Actif</option>
-                                    <option value="Inactif">Inactif</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">&nbsp;</label>
-                                <button class="btn btn-secondary w-100" onclick="resetFilters()">
-                                    <i class="bi bi-arrow-clockwise me-2"></i> Réinitialiser
-                                </button>
-                            </div>
+                        <h6 class="text-muted">Total Personnel</h6>
+                        <h3 class="mb-0" id="statTotal">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card border-success">
+                    <div class="card-body">
+                        <h6 class="text-muted">Biologistes</h6>
+                        <h3 class="mb-0" id="statBio">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card border-info">
+                    <div class="card-body">
+                        <h6 class="text-muted">Techniciens</h6>
+                        <h3 class="mb-0" id="statTech">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card border-warning">
+                    <div class="card-body">
+                        <h6 class="text-muted">Autres</h6>
+                        <h3 class="mb-0" id="statOther">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Type de Personnel</label>
+                        <select class="form-select" id="filterType">
+                            <option value="">Tous</option>
+                            <option value="Biologiste">Biologiste</option>
+                            <option value="Technicien">Technicien</option>
+                            <option value="Cadre">Cadre</option>
+                            <option value="Secrétaire">Secrétaire</option>
+                            <option value="Préleveur">Préleveur</option>
+                            <option value="Agent Logistique">Agent Logistique</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Département</label>
+                        <select class="form-select" id="filterDept">
+                            <option value="">Tous</option>
+                            <option value="Biochimie">Biochimie</option>
+                            <option value="Hématologie">Hématologie</option>
+                            <option value="Microbiologie">Microbiologie</option>
+                            <option value="Biologie délocalisée">Biologie délocalisée</option>
+                            <option value="Immuno-Séro-Electro">Immuno-Séro-Electro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Statut</label>
+                        <select class="form-select" id="filterStatus">
+                            <option value="">Tous</option>
+                            <option value="Actif" selected>Actif</option>
+                            <option value="Inactif">Inactif</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-secondary w-100" onclick="resetFilters()">
+                            <i class="bi bi-arrow-clockwise me-2"></i> Réinitialiser
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Personnel -->
+        <div class="card">
+            <div class="card-body">
+                <table id="personnelTable" class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Matricule</th>
+                            <th>Nom Complet</th>
+                            <th>Type</th>
+                            <th>Email</th>
+                            <th>Téléphone</th>
+                            <th>Département</th>
+                            <th>Date Embauche</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Chargement via AJAX -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Détails Personnel -->
+    <div class="modal fade" id="detailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-person-badge"></i> Détails du Personnel
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detailsContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
                         </div>
                     </div>
                 </div>
-
-                <!-- Personnel Table -->
-                <div class="card">
-                    <div class="card-body">
-                        <table id="personnelTable" class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Matricule</th>
-                                    <th>Nom</th>
-                                    <th>Prénom</th>
-                                    <th>Type</th>
-                                    <th>Email</th>
-                                    <th>Téléphone</th>
-                                    <th>Date Embauche</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Data will be loaded via AJAX -->
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Affecter Poste -->
+    <div class="modal fade" id="affectationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-briefcase-fill"></i> Affecter à un Poste
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="affectationForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="affectPersonnelId">
+                        
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong id="affectPersonnelNom"></strong> sera affecté au poste sélectionné
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Poste <span class="text-danger">*</span></label>
+                            <select class="form-select" id="affectPosteId" required>
+                                <option value="">Sélectionner un poste...</option>
+                            </select>
+                            <small class="text-muted">Seuls les postes disponibles sont affichés</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Date de Début <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="affectDateDebut" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Notes / Commentaires</label>
+                            <textarea class="form-control" id="affectNotes" rows="3" 
+                                      placeholder="Commentaires optionnels..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-2"></i> Confirmer Affectation
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -96,59 +220,314 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    
     <script>
+        let personnelTable;
+        
         $(document).ready(function() {
-            const table = $('#personnelTable').DataTable({
-                ajax: '/personnel/api/list',
+            // Initialiser DataTable
+            personnelTable = $('#personnelTable').DataTable({
+                ajax: {
+                    url: '/personnel/api/list',
+                    dataSrc: 'data'
+                },
                 columns: [
                     { data: 'matricule' },
-                    { data: 'nom' },
-                    { data: 'prenom' },
-                    { data: 'type_personnel' },
+                    { 
+                        data: null,
+                        render: function(data) {
+                            return `<strong>${data.prenom} ${data.nom}</strong>`;
+                        }
+                    },
+                    { 
+                        data: 'type_personnel',
+                        render: function(data) {
+                            const colors = {
+                                'Biologiste': 'success',
+                                'Technicien': 'info',
+                                'Cadre': 'primary',
+                                'Secrétaire': 'warning',
+                                'Préleveur': 'secondary',
+                                'Agent Logistique': 'dark'
+                            };
+                            return `<span class="badge bg-${colors[data] || 'secondary'} badge-type">${data}</span>`;
+                        }
+                    },
                     { data: 'email' },
                     { data: 'telephone' },
-                    { data: 'date_embauche' },
+                    { 
+                        data: 'departement_nom',
+                        render: function(data) {
+                            return data || '<span class="text-muted">Non assigné</span>';
+                        }
+                    },
+                    { 
+                        data: 'date_embauche',
+                        render: function(data) {
+                            return data ? new Date(data).toLocaleDateString('fr-FR') : '';
+                        }
+                    },
                     {
                         data: null,
-                        render: function(data, type, row) {
+                        orderable: false,
+                        render: function(data) {
                             return `
-                                <button class="btn btn-sm btn-info" onclick="viewDetails(${row.id})">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                <a href="/personnel/edit/${row.id}" class="btn btn-sm btn-warning">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <button class="btn btn-sm btn-danger" onclick="deletePersonnel(${row.id})">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-sm btn-info" onclick="viewDetails(${data.id})" 
+                                            title="Voir détails">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-success" onclick="affecterPoste(${data.id}, '${data.prenom} ${data.nom}')"
+                                            title="Affecter à un poste">
+                                        <i class="bi bi-briefcase"></i>
+                                    </button>
+                                    <a href="/personnel/edit/${data.id}" class="btn btn-sm btn-warning" 
+                                       title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-danger" onclick="deletePersonnel(${data.id})"
+                                            title="Supprimer">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
                             `;
                         }
                     }
                 ],
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
+                },
+                pageLength: 25,
+                order: [[1, 'asc']],
+                drawCallback: function() {
+                    updateStatistics();
                 }
             });
 
+            // Filtres
             $('#filterType, #filterDept, #filterStatus').on('change', function() {
-                table.ajax.reload();
+                applyFilters();
             });
+
+            // Charger les postes disponibles
+            loadPostesDisponibles();
+
+            // Form affectation
+            $('#affectationForm').on('submit', function(e) {
+                e.preventDefault();
+                submitAffectation();
+            });
+
+            // Date par défaut
+            $('#affectDateDebut').val(new Date().toISOString().split('T')[0]);
         });
 
+        function applyFilters() {
+            const type = $('#filterType').val();
+            const dept = $('#filterDept').val();
+            const status = $('#filterStatus').val();
+
+            personnelTable.columns(2).search(type);
+            personnelTable.columns(5).search(dept);
+            
+            // Le filtre statut nécessiterait une colonne supplémentaire
+            personnelTable.draw();
+        }
+
         function resetFilters() {
-            $('#filterType, #filterDept, #filterStatus').val('');
-            $('#personnelTable').DataTable().ajax.reload();
+            $('#filterType, #filterDept').val('');
+            $('#filterStatus').val('Actif');
+            personnelTable.search('').columns().search('').draw();
+        }
+
+        function updateStatistics() {
+            const data = personnelTable.rows({search: 'applied'}).data();
+            let total = data.length;
+            let bio = 0, tech = 0, other = 0;
+
+            data.each(function(row) {
+                if (row.type_personnel === 'Biologiste') bio++;
+                else if (row.type_personnel === 'Technicien') tech++;
+                else other++;
+            });
+
+            $('#statTotal').text(total);
+            $('#statBio').text(bio);
+            $('#statTech').text(tech);
+            $('#statOther').text(other);
+        }
+
+        async function viewDetails(id) {
+            $('#detailsModal').modal('show');
+            $('#detailsContent').html(`
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+            `);
+
+            try {
+                const response = await fetch(`/personnel/api/${id}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const p = result.personnel;
+                    $('#detailsContent').html(`
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="info-label">Matricule</div>
+                                <div class="info-value">${p.matricule}</div>
+                                
+                                <div class="info-label">Nom Complet</div>
+                                <div class="info-value"><strong>${p.prenom} ${p.nom}</strong></div>
+                                
+                                <div class="info-label">Type de Personnel</div>
+                                <div class="info-value">
+                                    <span class="badge bg-primary">${p.type_personnel}</span>
+                                </div>
+                                
+                                <div class="info-label">Date de Naissance</div>
+                                <div class="info-value">${p.date_naissance ? new Date(p.date_naissance).toLocaleDateString('fr-FR') : 'N/A'}</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="info-label">Email</div>
+                                <div class="info-value">
+                                    <a href="mailto:${p.email}">${p.email}</a>
+                                </div>
+                                
+                                <div class="info-label">Téléphone</div>
+                                <div class="info-value">${p.telephone || 'N/A'}</div>
+                                
+                                <div class="info-label">Date d'Embauche</div>
+                                <div class="info-value">${new Date(p.date_embauche).toLocaleDateString('fr-FR')}</div>
+                                
+                                <div class="info-label">Département</div>
+                                <div class="info-value">${p.departement_nom || '<span class="text-muted">Non assigné</span>'}</div>
+                            </div>
+                        </div>
+                        
+                        ${p.adresse ? `
+                            <div class="section-divider"></div>
+                            <div class="info-label">Adresse</div>
+                            <div class="info-value">${p.adresse}</div>
+                        ` : ''}
+                        
+                        <div class="section-divider"></div>
+                        <div class="d-flex gap-2">
+                            <a href="/personnel/edit/${p.id}" class="btn btn-warning">
+                                <i class="bi bi-pencil me-2"></i> Modifier
+                            </a>
+                            <button class="btn btn-success" onclick="affecterPoste(${p.id}, '${p.prenom} ${p.nom}')">
+                                <i class="bi bi-briefcase me-2"></i> Affecter à un Poste
+                            </button>
+                        </div>
+                    `);
+                } else {
+                    throw new Error(result.message || 'Erreur de chargement');
+                }
+            } catch (err) {
+                $('#detailsContent').html(`
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Erreur: ${err.message}
+                    </div>
+                `);
+            }
+        }
+
+        async function loadPostesDisponibles() {
+            try {
+                const response = await fetch('/rh/postes');
+                // Cette route devrait retourner du JSON, vous devrez peut-être créer une route API
+                // Pour l'instant, on simule avec des données
+                const postes = [
+                    { id: 1, code: 'BIO001', titre: 'Biologiste Senior - Biochimie', nb_disponibles: 1 },
+                    { id: 2, code: 'TECH002', titre: 'Technicien - Hématologie', nb_disponibles: 2 },
+                    { id: 3, code: 'CAD001', titre: 'Responsable Qualité', nb_disponibles: 1 }
+                ];
+                
+                const select = $('#affectPosteId');
+                select.empty().append('<option value="">Sélectionner un poste...</option>');
+                
+                postes.forEach(poste => {
+                    if (poste.nb_disponibles > 0) {
+                        select.append(`
+                            <option value="${poste.id}">
+                                ${poste.code} - ${poste.titre} (${poste.nb_disponibles} disponible${poste.nb_disponibles > 1 ? 's' : ''})
+                            </option>
+                        `);
+                    }
+                });
+            } catch (err) {
+                console.error('Erreur chargement postes:', err);
+            }
+        }
+
+        function affecterPoste(personnelId, personnelNom) {
+            $('#detailsModal').modal('hide');
+            $('#affectationModal').modal('show');
+            $('#affectPersonnelId').val(personnelId);
+            $('#affectPersonnelNom').text(personnelNom);
+        }
+
+        async function submitAffectation() {
+            const personnelId = $('#affectPersonnelId').val();
+            const posteId = $('#affectPosteId').val();
+            const dateDebut = $('#affectDateDebut').val();
+            const notes = $('#affectNotes').val();
+
+            if (!posteId) {
+                alert('Veuillez sélectionner un poste');
+                return;
+            }
+
+            try {
+                const response = await fetch('/rh/postes/affecter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        personnel_id: personnelId,
+                        poste_id: posteId,
+                        date_debut: dateDebut,
+                        notes: notes
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success || response.ok) {
+                    $('#affectationModal').modal('hide');
+                    alert('Affectation réalisée avec succès !');
+                    personnelTable.ajax.reload();
+                    $('#affectationForm')[0].reset();
+                } else {
+                    throw new Error(result.error || 'Erreur lors de l\'affectation');
+                }
+            } catch (err) {
+                alert('Erreur: ' + err.message);
+                console.error(err);
+            }
         }
 
         function deletePersonnel(id) {
-            if(confirm('Êtes-vous sûr de vouloir supprimer ce personnel?')) {
-                fetch(`/personnel/delete/${id}`, { method: 'DELETE' })
-                    .then(response => response.json())
-                    .then(data => {
-                        alert('Personnel supprimé avec succès');
-                        $('#personnelTable').DataTable().ajax.reload();
-                    });
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce personnel ?\n\nCette action est irréversible.')) {
+                return;
             }
+
+            fetch(`/personnel/delete/${id}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success || data.message) {
+                        alert('Personnel supprimé avec succès');
+                        personnelTable.ajax.reload();
+                    } else {
+                        alert('Erreur lors de la suppression');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Erreur: ' + err.message);
+                });
         }
     </script>
 </body>

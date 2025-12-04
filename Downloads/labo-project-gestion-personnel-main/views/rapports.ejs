@@ -30,6 +30,11 @@
             border-radius: 12px;
             padding: 25px;
             margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        .stat-box:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
         }
         .stat-value {
             font-size: 2.5rem;
@@ -43,14 +48,48 @@
             .print-section { display: block !important; }
             .report-card { break-inside: avoid; }
         }
+        .table-active {
+            background-color: #e9ecef !important;
+            font-weight: bold;
+        }
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .loading-overlay.active {
+            display: flex;
+        }
+        .spinner-border-custom {
+            width: 3rem;
+            height: 3rem;
+        }
     </style>
 </head>
 <body>
-  <%- include('partials/sidebar', { currentPage: 'dashboard' }) %>
+    <%- include('partials/sidebar', { currentPage: 'rapports' }) %>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="text-center text-white">
+            <div class="spinner-border spinner-border-custom" role="status">
+                <span class="visually-hidden">Chargement...</span>
+            </div>
+            <p class="mt-3">Chargement des données...</p>
+        </div>
+    </div>
     
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-10 offset-md-2 px-4 py-4">
+                <!-- En-tête -->
                 <div class="d-flex justify-content-between align-items-center mb-4 no-print">
                     <div>
                         <h2><i class="bi bi-file-earmark-text text-primary"></i> Rapports et Analyses</h2>
@@ -100,7 +139,7 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">&nbsp;</label>
-                                <button class="btn btn-primary w-100" onclick="generateReport()">
+                                <button class="btn btn-primary w-100" onclick="generateReport()" id="generateBtn">
                                     <i class="bi bi-graph-up me-2"></i> Générer
                                 </button>
                             </div>
@@ -205,7 +244,15 @@
                                                 <th>% du Total</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="detailTableBody"></tbody>
+                                        <tbody id="detailTableBody">
+                                            <tr>
+                                                <td colspan="7" class="text-center">
+                                                    <div class="spinner-border text-primary" role="status">
+                                                        <span class="visually-hidden">Chargement...</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
                                     </table>
                                 </div>
                             </div>
@@ -269,23 +316,46 @@
         let charts = {};
         let statsData = {};
 
+        // Afficher/cacher le loader
+        function showLoader() {
+            $('#loadingOverlay').addClass('active');
+        }
+
+        function hideLoader() {
+            $('#loadingOverlay').removeClass('active');
+        }
+
         // Charger les données
         async function loadData() {
             try {
-                const [statsResponse, detailResponse] = await Promise.all([
+                showLoader();
+                
+                const [statsResponse, deptResponse, ancienneteResponse, genderResponse] = await Promise.all([
                     fetch('/personnel/api/statistics'),
-                    fetch('/rapports/api/detailed-stats')
+                    fetch('/rapports/api/stats-by-department'),
+                    fetch('/rapports/api/anciennete'),
+                    fetch('/rapports/api/gender-distribution')
                 ]);
                 
+                if (!statsResponse.ok || !deptResponse.ok || !ancienneteResponse.ok || !genderResponse.ok) {
+                    throw new Error('Erreur lors de la récupération des données');
+                }
+                
                 statsData = await statsResponse.json();
-                const detailData = await detailResponse.json();
+                const deptData = await deptResponse.json();
+                const ancienneteData = await ancienneteResponse.json();
+                const genderData = await genderResponse.json();
                 
                 updateMainStats();
-                createCharts();
-                populateDetailTable(detailData);
+                createCharts(deptData, ancienneteData);
+                populateDetailTable(deptData);
+                updateGenderStats(genderData);
+                
+                hideLoader();
             } catch (err) {
                 console.error('Erreur:', err);
-                alert('Erreur lors du chargement des données');
+                hideLoader();
+                alert('Erreur lors du chargement des données. Veuillez réessayer.');
             }
         }
 
@@ -298,7 +368,7 @@
         }
 
         // Créer les graphiques
-        function createCharts() {
+        function createCharts(deptData, ancienneteData) {
             // Graphique par type
             const typeCtx = document.getElementById('typeChart').getContext('2d');
             if (charts.typeChart) charts.typeChart.destroy();
@@ -326,7 +396,18 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom' }
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
                     }
                 }
             });
@@ -335,13 +416,46 @@
             const deptCtx = document.getElementById('departementChart').getContext('2d');
             if (charts.departementChart) charts.departementChart.destroy();
             
+            // Agréger les données par département
+            const deptStats = {};
+            
+            // Techniciens
+            if (deptData.techniciens) {
+                deptData.techniciens.forEach(t => {
+                    if (!deptStats[t.departement]) deptStats[t.departement] = 0;
+                    deptStats[t.departement] += t.nombre || 0;
+                });
+            }
+            
+            // Biologistes
+            if (deptData.biologistes) {
+                deptData.biologistes.forEach(b => {
+                    const dept = b.departement || 'Autre';
+                    if (!deptStats[dept]) deptStats[dept] = 0;
+                    deptStats[dept] += b.nombre || 0;
+                });
+            }
+            
+            // Cadres
+            if (deptData.cadres) {
+                deptData.cadres.forEach(c => {
+                    if (c.departement) {
+                        if (!deptStats[c.departement]) deptStats[c.departement] = 0;
+                        deptStats[c.departement] += c.nombre || 0;
+                    }
+                });
+            }
+            
+            const deptLabels = Object.keys(deptStats);
+            const deptValues = Object.values(deptStats);
+            
             charts.departementChart = new Chart(deptCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['Biochimie', 'Hématologie', 'Microbiologie', 'Bio. Déloc.', 'Immuno-Séro', 'Immuno-Hémato'],
+                    labels: deptLabels,
                     datasets: [{
                         label: 'Personnel',
-                        data: [12, 10, 15, 9, 8, 7],
+                        data: deptValues,
                         backgroundColor: '#6c5b7b'
                     }]
                 },
@@ -350,6 +464,14 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
                     }
                 }
             });
@@ -358,76 +480,181 @@
             const ancCtx = document.getElementById('ancienneteChart').getContext('2d');
             if (charts.ancienneteChart) charts.ancienneteChart.destroy();
             
+            // Préparer les données d'ancienneté
+            const ancienneteLabels = [];
+            const ancienneteValues = [];
+            const ancienneteOrder = ['Moins d\'un an', '1-3 ans', '3-5 ans', '5-10 ans', 'Plus de 10 ans'];
+            
+            const ancienneteMap = {};
+            ancienneteData.forEach(item => {
+                if (!ancienneteMap[item.tranche_anciennete]) {
+                    ancienneteMap[item.tranche_anciennete] = 0;
+                }
+                ancienneteMap[item.tranche_anciennete] += item.nombre || 0;
+            });
+            
+            ancienneteOrder.forEach(tranche => {
+                ancienneteLabels.push(tranche);
+                ancienneteValues.push(ancienneteMap[tranche] || 0);
+            });
+            
             charts.ancienneteChart = new Chart(ancCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['< 1 an', '1-3 ans', '3-5 ans', '5-10 ans', '> 10 ans'],
+                    labels: ancienneteLabels,
                     datasets: [{
                         label: 'Nombre',
-                        data: [8, 15, 22, 28, 16],
+                        data: ancienneteValues,
                         backgroundColor: '#ffa726'
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
                 }
             });
         }
 
         // Remplir le tableau détaillé
-        function populateDetailTable(data) {
+        function populateDetailTable(deptData) {
             const tbody = $('#detailTableBody');
             tbody.empty();
             
-            const departments = [
-                'Biochimie', 'Hématologie', 'Microbiologie', 
-                'Biologie Délocalisée', 'Immuno-Séro-Electro', 'Immuno-Hémato',
-                'Administration', 'Support'
-            ];
-            
             let total = statsData.total || 0;
+            const deptTotals = {};
             
-            departments.forEach(dept => {
-                const bio = Math.floor(Math.random() * 5) + 1;
-                const tech = Math.floor(Math.random() * 12) + 3;
-                const cadre = Math.floor(Math.random() * 3);
-                const support = Math.floor(Math.random() * 4);
-                const deptTotal = bio + tech + cadre + support;
+            // Calculer les totaux par département
+            // Techniciens
+            if (deptData.techniciens) {
+                deptData.techniciens.forEach(t => {
+                    if (!deptTotals[t.departement]) {
+                        deptTotals[t.departement] = { biologistes: 0, techniciens: 0, cadres: 0, support: 0 };
+                    }
+                    deptTotals[t.departement].techniciens += t.nombre || 0;
+                });
+            }
+            
+            // Biologistes
+            if (deptData.biologistes) {
+                deptData.biologistes.forEach(b => {
+                    const dept = b.departement || 'Autre';
+                    if (!deptTotals[dept]) {
+                        deptTotals[dept] = { biologistes: 0, techniciens: 0, cadres: 0, support: 0 };
+                    }
+                    deptTotals[dept].biologistes += b.nombre || 0;
+                });
+            }
+            
+            // Cadres
+            if (deptData.cadres) {
+                deptData.cadres.forEach(c => {
+                    if (c.departement) {
+                        if (!deptTotals[c.departement]) {
+                            deptTotals[c.departement] = { biologistes: 0, techniciens: 0, cadres: 0, support: 0 };
+                        }
+                        deptTotals[c.departement].cadres += c.nombre || 0;
+                    }
+                });
+            }
+            
+            // Afficher les données
+            if (Object.keys(deptTotals).length === 0) {
+                tbody.append(`
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">Aucune donnée disponible</td>
+                    </tr>
+                `);
+                return;
+            }
+            
+            Object.keys(deptTotals).forEach(dept => {
+                const data = deptTotals[dept];
+                const deptTotal = data.biologistes + data.techniciens + data.cadres + data.support;
                 const percent = total > 0 ? ((deptTotal / total) * 100).toFixed(1) : 0;
                 
                 tbody.append(`
                     <tr>
                         <td><strong>${dept}</strong></td>
-                        <td><span class="badge bg-primary">${bio}</span></td>
-                        <td><span class="badge bg-success">${tech}</span></td>
-                        <td><span class="badge bg-warning">${cadre}</span></td>
-                        <td><span class="badge bg-info">${support}</span></td>
+                        <td><span class="badge bg-primary">${data.biologistes}</span></td>
+                        <td><span class="badge bg-success">${data.techniciens}</span></td>
+                        <td><span class="badge bg-warning">${data.cadres}</span></td>
+                        <td><span class="badge bg-info">${data.support}</span></td>
                         <td><strong>${deptTotal}</strong></td>
                         <td>${percent}%</td>
                     </tr>
                 `);
             });
+            
+            // Ligne de total
+            if (total > 0) {
+                const totalBio = statsData.biologistes || 0;
+                const totalTech = statsData.techniciens || 0;
+                const totalCadres = statsData.cadres || 0;
+                const totalSupport = (statsData.secretaires || 0) + (statsData.preleveurs || 0) + (statsData.agents_logistiques || 0);
+                
+                tbody.append(`
+                    <tr class="table-active">
+                        <td><strong>TOTAL</strong></td>
+                        <td><span class="badge bg-primary">${totalBio}</span></td>
+                        <td><span class="badge bg-success">${totalTech}</span></td>
+                        <td><span class="badge bg-warning">${totalCadres}</span></td>
+                        <td><span class="badge bg-info">${totalSupport}</span></td>
+                        <td><strong>${total}</strong></td>
+                        <td>100%</td>
+                    </tr>
+                `);
+            }
+        }
+        
+        // Mettre à jour les statistiques de genre
+        function updateGenderStats(genderData) {
+            let hommes = 0;
+            let femmes = 0;
+            
+            genderData.forEach(item => {
+                if (item.genre === 'Homme') {
+                    hommes += item.nombre || 0;
+                } else if (item.genre === 'Femme') {
+                    femmes += item.nombre || 0;
+                }
+            });
+            
+            $('#hommes').text(hommes);
+            $('#femmes').text(femmes);
         }
 
         // Générer rapport
         function generateReport() {
             const type = $('#reportType').val();
             const periode = $('#periode').val();
+            const filterDept = $('#filterDept').val();
             
-            alert(`Génération du rapport: ${type} pour la période: ${periode}`);
+            // Recharger les données
             loadData();
         }
 
         // Export Excel
         function exportToExcel() {
-            alert('Exportation vers Excel...');
+            const type = $('#reportType').val();
+            window.location.href = `/rapports/export/excel?type=${type}`;
         }
 
         // Initialisation
         $(document).ready(function() {
             loadData();
-            $('#printDate').text(new Date().toLocaleDateString('fr-FR'));
+            $('#printDate').text(new Date().toLocaleDateString('fr-FR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }));
         });
     </script>
 </body>
