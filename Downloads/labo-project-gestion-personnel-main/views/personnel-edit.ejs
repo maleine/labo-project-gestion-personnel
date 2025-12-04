@@ -10,7 +10,16 @@
 </head>
 <body>
     <%- include('partials/sidebar', { currentPage: 'dashboard' }) %>
-    
+    <link href="/css/global.css" rel="stylesheet">
+
+<!-- Après la sidebar -->
+<%- include('partials/navbar', { 
+    pageTitle: 'Gestion des Formations',
+    pageSubtitle: 'Planification et suivi',
+    pageIcon: 'mortarboard-fill',
+    backUrl: '/rh/dashboard',
+    username: username
+}) %>
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-10 offset-md-2 px-4 py-4">

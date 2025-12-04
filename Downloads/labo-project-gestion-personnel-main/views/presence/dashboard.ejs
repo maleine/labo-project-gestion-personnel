@@ -109,7 +109,17 @@
 </head>
 <body>
     <%- include('../partials/sidebar') %>
-    
+    <!-- Dans le <head> -->
+<link href="/css/global.css" rel="stylesheet">
+
+<!-- Après la sidebar -->
+<%- include('../partials/navbar', { 
+    pageTitle: 'Gestion des Formations',
+    pageSubtitle: 'Planification et suivi',
+    pageIcon: 'mortarboard-fill',
+    backUrl: '/rh/dashboard',
+   username: username
+}) %>
     <div class="main-content">
 
 

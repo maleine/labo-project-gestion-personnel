@@ -1,0 +1,252 @@
+<!-- ==================== views/partials/navbar.ejs ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-content">
+        <!-- Bouton Retour -->
+        <div class="navbar-left">
+            <% if (typeof backUrl !== 'undefined' && backUrl) { %>
+                <a href="<%= backUrl %>" class="btn-back" title="Retour">
+                    <i class="bi bi-arrow-left-circle"></i>
+                    <span>Retour</span>
+                </a>
+            <% } else { %>
+                <button onclick="window.history.back()" class="btn-back" title="Retour">
+                    <i class="bi bi-arrow-left-circle"></i>
+                    <span>Retour</span>
+                </button>
+            <% } %>
+        </div>
+
+        <!-- Titre de la page -->
+        <div class="navbar-center">
+            <h1 class="page-title">
+                <% if (typeof pageIcon !== 'undefined' && pageIcon) { %>
+                    <i class="bi bi-<%= pageIcon %> me-2"></i>
+                <% } %>
+                <%= pageTitle || 'Lab Manager' %>
+            </h1>
+            <% if (typeof pageSubtitle !== 'undefined' && pageSubtitle) { %>
+                <p class="page-subtitle"><%= pageSubtitle %></p>
+            <% } %>
+        </div>
+
+        <!-- Actions droite -->
+        <div class="navbar-right">
+            <!-- Notifications -->
+            <div class="dropdown">
+                <button class="btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-bell-fill"></i>
+                    <span class="badge-notification">3</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end notifications-dropdown">
+                    <li class="dropdown-header">
+                        <strong>Notifications</strong>
+                        <span class="badge bg-primary rounded-pill">3</span>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item notification-item" href="#">
+                            <div class="notification-icon bg-warning">
+                                <i class="bi bi-exclamation-triangle"></i>
+                            </div>
+                            <div class="notification-content">
+                                <strong>Habilitation à renouveler</strong>
+                                <small>2 habilitations expirent dans 30 jours</small>
+                                <span class="notification-time">Il y a 2h</span>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item notification-item" href="#">
+                            <div class="notification-icon bg-success">
+                                <i class="bi bi-check-circle"></i>
+                            </div>
+                            <div class="notification-content">
+                                <strong>Formation terminée</strong>
+                                <small>Formation POCT validée avec succès</small>
+                                <span class="notification-time">Il y a 5h</span>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item notification-item" href="#">
+                            <div class="notification-icon bg-info">
+                                <i class="bi bi-person-plus"></i>
+                            </div>
+                            <div class="notification-content">
+                                <strong>Nouveau personnel</strong>
+                                <small>Dr. Amadou Diop a rejoint l'équipe</small>
+                                <span class="notification-time">Hier</span>
+                            </div>
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-center text-primary" href="/notifications">
+                            Voir toutes les notifications
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Recherche rapide -->
+            <button class="btn-icon" type="button" data-bs-toggle="modal" data-bs-target="#searchModal" title="Recherche rapide">
+                <i class="bi bi-search"></i>
+            </button>
+
+            <!-- Profil utilisateur -->
+            <div class="dropdown">
+                <button class="btn-profile" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="profile-avatar">
+                        <i class="bi bi-person-circle"></i>
+                    </div>
+                    <div class="profile-info">
+                      <span class="profile-name"><%= username || 'Utilisateur' %></span>
+
+                        <span class="profile-role"><%= role || 'Administrateur' %></span>
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end profile-dropdown">
+                    <li class="dropdown-header">
+                        <div class="text-center">
+                            <div class="profile-avatar-large">
+                                <i class="bi bi-person-circle"></i>
+                            </div>
+                           <span class="profile-name"><%= username || 'Utilisateur' %></span>
+
+                            <br>
+                           
+                        </div>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="/profile">
+                            <i class="bi bi-person me-2"></i> Mon Profil
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="/settings">
+                            <i class="bi bi-gear me-2"></i> Paramètres
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="/help">
+                            <i class="bi bi-question-circle me-2"></i> Aide
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="/auth/logout">
+                            <i class="bi bi-box-arrow-right me-2"></i> Déconnexion
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Modal Recherche Rapide -->
+<div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content search-modal">
+            <div class="modal-body">
+                <div class="search-box-large">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" id="globalSearch" placeholder="Rechercher du personnel, des formations, des habilitations..." autofocus>
+                    <button type="button" class="btn-close-search" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="search-results" id="searchResults">
+                    <div class="search-hint">
+                        <i class="bi bi-lightbulb text-warning"></i>
+                        <p>Tapez pour rechercher dans toute l'application</p>
+                        <div class="search-shortcuts">
+                            <span><kbd>Ctrl</kbd> + <kbd>K</kbd> pour rechercher</span>
+                            <span><kbd>Esc</kbd> pour fermer</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Raccourci clavier pour la recherche (Ctrl+K)
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            const searchModal = new bootstrap.Modal(document.getElementById('searchModal'));
+            searchModal.show();
+        }
+        
+        // Fermer avec Escape
+        if (e.key === 'Escape') {
+            const searchModal = bootstrap.Modal.getInstance(document.getElementById('searchModal'));
+            if (searchModal) {
+                searchModal.hide();
+            }
+        }
+    });
+
+    // Recherche en temps réel
+    document.getElementById('globalSearch')?.addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+        const resultsDiv = document.getElementById('searchResults');
+        
+        if (query.length < 2) {
+            resultsDiv.innerHTML = `
+                <div class="search-hint">
+                    <i class="bi bi-lightbulb text-warning"></i>
+                    <p>Tapez au moins 2 caractères pour rechercher</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Afficher un loader
+        resultsDiv.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Recherche...</span>
+                </div>
+                <p class="mt-2 text-muted">Recherche en cours...</p>
+            </div>
+        `;
+        
+        // Simulation d'une recherche (à remplacer par un vrai appel API)
+        setTimeout(() => {
+            resultsDiv.innerHTML = `
+                <div class="search-category">
+                    <h6><i class="bi bi-people me-2"></i>Personnel</h6>
+                    <a href="/personnel/1" class="search-result-item">
+                        <div class="result-icon bg-primary"><i class="bi bi-person"></i></div>
+                        <div class="result-content">
+                            <strong>Dr. Amadou Diop</strong>
+                            <small>Biologiste - Biochimie</small>
+                        </div>
+                    </a>
+                    <a href="/personnel/2" class="search-result-item">
+                        <div class="result-icon bg-success"><i class="bi bi-person"></i></div>
+                        <div class="result-content">
+                            <strong>Marie Sall</strong>
+                            <small>Technicienne - Hématologie</small>
+                        </div>
+                    </a>
+                </div>
+                <div class="search-category">
+                    <h6><i class="bi bi-mortarboard me-2"></i>Formations</h6>
+                    <a href="/rh/formations/1" class="search-result-item">
+                        <div class="result-icon bg-info"><i class="bi bi-book"></i></div>
+                        <div class="result-content">
+                            <strong>Formation POCT</strong>
+                            <small>Du 15/01/2025 au 20/01/2025</small>
+                        </div>
+                    </a>
+                </div>
+            `;
+        }, 500);
+    });
+</script>

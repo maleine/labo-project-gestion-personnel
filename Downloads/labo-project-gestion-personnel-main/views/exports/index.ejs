@@ -20,8 +20,18 @@
     </style>
 </head>
 <body>
-    <%- include('../partials/sidebar', { currentPage: 'rh-dashboard' }) %>
-    
+    <%- include('../partials/sidebar', { currentPage: 'exports' }) %>
+    <!-- Dans le <head> -->
+<link href="/css/global.css" rel="stylesheet">
+
+<!-- Après la sidebar -->
+<%- include('../partials/navbar', { 
+    pageTitle: 'Gestion des Formations',
+    pageSubtitle: 'Planification et suivi',
+    pageIcon: 'mortarboard-fill',
+    backUrl: '/rh/dashboard',
+     username: username
+}) %>
     <div class="main-content">
         <div class="container-fluid px-4 py-4">
             <h2 class="mb-4"><i class="bi bi-file-earmark-pdf"></i> Exports & Rapports PDF</h2>

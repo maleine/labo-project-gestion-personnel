@@ -75,7 +75,16 @@
 </head>
 <body>
     <%- include('partials/sidebar', { currentPage: 'rapports' }) %>
-    
+    <link href="/css/global.css" rel="stylesheet">
+
+<!-- Après la sidebar -->
+<%- include('partials/navbar', { 
+    pageTitle: 'Gestion des Formations',
+    pageSubtitle: 'Planification et suivi',
+    pageIcon: 'mortarboard-fill',
+    backUrl: '/rh/dashboard',
+    username: username
+}) %>
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="text-center text-white">

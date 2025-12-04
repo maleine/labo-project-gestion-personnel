@@ -125,7 +125,16 @@
     <!-- Sidebar -->
     <div class="d-flex">
         <%- include('../partials/sidebar') %>
-        
+        <link href="/css/global.css" rel="stylesheet">
+
+<!-- Après la sidebar -->
+<%- include('../partials/navbar', { 
+    pageTitle: 'Gestion des Formations',
+    pageSubtitle: 'Planification et suivi',
+    pageIcon: 'mortarboard-fill',
+    backUrl: '/rh/dashboard',
+    username: username
+}) %>
         <!-- Main Content -->
         <div class="main-content">
             <div class="container-fluid">
